@@ -1,0 +1,4273 @@
+===== ./templates/scan.html =====
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scan QR Code</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- Use jsQR library instead of Instascan -->
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+    <style>
+    .card-header .nav-tabs .nav-link.active {
+        color: #000000 !important;
+        background-color: #ffffff !important;
+        border-color: #ffffff !important;
+        font-weight: 600 !important;
+        border-radius: 4px 4px 0 0 !important;
+    }
+</style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="/">
+                <i class="fas fa-qrcode"></i> Secure QR Scanner
+            </a>
+        </div>
+    </nav>
+
+    <div class="container mt-5">
+        <div class="row">
+            <div class="col-lg-8 mx-auto">
+                <h2 class="text-center mb-4">
+                    <i class="fas fa-camera"></i> Scan QR Code
+                </h2>
+
+                <div class="card shadow">
+                    <div class="card-header bg-primary text-white">
+    <ul class="nav nav-tabs card-header-tabs" id="scanTabs" role="tablist">
+        <li class="nav-item">
+            <a class="nav-link active text-white" id="camera-tab" data-bs-toggle="tab" href="#camera">
+                <i class="fas fa-camera"></i> Webcam
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link text-white" id="upload-tab" data-bs-toggle="tab" href="#upload">
+                <i class="fas fa-upload"></i> Upload
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link text-white" id="manual-tab" data-bs-toggle="tab" href="#manual">
+                <i class="fas fa-keyboard"></i> Manual
+            </a>
+        </li>
+    </ul>
+</div>
+
+                    <div class="card-body">
+                        <div class="tab-content" id="scanTabsContent">
+                            <!-- Camera Tab -->
+                            <div class="tab-pane fade show active" id="camera">
+                                <div class="text-center">
+                                    <div id="camera-container" class="mb-3">
+                                        <video id="video" width="100%" height="auto" style="max-width: 500px;" autoplay></video>
+                                        <canvas id="canvas" style="display: none;"></canvas>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <select id="camera-select" class="form-select mb-2" style="max-width: 300px; margin: 0 auto;">
+                                            <option value="">Select Camera</option>
+                                        </select>
+                                        
+                                        <button id="start-camera" class="btn btn-success">
+                                            <i class="fas fa-play"></i> Start Camera
+                                        </button>
+                                        <button id="stop-camera" class="btn btn-danger" disabled>
+                                            <i class="fas fa-stop"></i> Stop Camera
+                                        </button>
+                                    </div>
+                                    
+                                    <div id="scanned-result" class="alert alert-info" style="display: none;">
+                                        <h5>Scanned Content:</h5>
+                                        <p id="scanned-content" class="mb-2"></p>
+                                        <div class="d-grid gap-2 d-md-block">
+                                            <button id="analyze-camera" class="btn btn-primary">
+                                                <i class="fas fa-search"></i> Analyze Security
+                                            </button>
+                                            <button id="scan-again" class="btn btn-secondary">
+                                                <i class="fas fa-redo"></i> Scan Another
+                                            </button>
+                                        </div>
+                                    </div>
+                                    
+                                    <div id="camera-error" class="alert alert-danger mt-3" style="display: none;"></div>
+                                </div>
+                            </div>
+
+                            <!-- Upload Tab -->
+                            <div class="tab-pane fade" id="upload">
+                                <form method="POST" action="/scan" enctype="multipart/form-data">
+                                    <input type="hidden" name="scan_method" value="upload">
+                                    <div class="mb-3">
+                                        <label for="file" class="form-label">Select QR Code Image</label>
+                                        <input class="form-control" type="file" id="file" name="file" accept="image/*" required>
+                                        <div class="form-text">
+                                            Supported formats: PNG, JPG, JPEG, GIF, BMP
+                                        </div>
+                                    </div>
+                                    <div class="text-center">
+                                        <button type="submit" class="btn btn-primary">
+                                            <i class="fas fa-upload"></i> Upload & Analyze
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+
+                            <!-- Manual Tab -->
+                            <div class="tab-pane fade" id="manual">
+                                <form method="POST" action="/scan">
+                                    <input type="hidden" name="scan_method" value="manual">
+                                    <div class="mb-3">
+                                        <label for="qr_content" class="form-label">Enter QR Code Content</label>
+                                        <textarea class="form-control" id="qr_content" name="qr_content" rows="4" placeholder="Paste QR code content here (URL, UPI, text, etc.)" required></textarea>
+                                    </div>
+                                    <div class="text-center">
+                                        <button type="submit" class="btn btn-primary">
+                                            <i class="fas fa-search"></i> Analyze Security
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-4">
+                    <a href="/" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left"></i> Back to Home
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // Webcam QR Scanner using jsQR
+        class QRScanner {
+            constructor() {
+                this.video = document.getElementById('video');
+                this.canvas = document.getElementById('canvas');
+                this.canvasContext = this.canvas.getContext('2d');
+                this.scanning = false;
+                this.mediaStream = null;
+                
+                this.init();
+            }
+            
+            init() {
+                this.populateCameraList();
+                this.bindEvents();
+            }
+            
+            async populateCameraList() {
+                try {
+                    const devices = await navigator.mediaDevices.enumerateDevices();
+                    const videoDevices = devices.filter(device => device.kind === 'videoinput');
+                    const select = document.getElementById('camera-select');
+                    
+                    videoDevices.forEach((device, index) => {
+                        const option = document.createElement('option');
+                        option.value = device.deviceId;
+                        option.text = device.label || `Camera ${index + 1}`;
+                        select.appendChild(option);
+                    });
+                } catch (error) {
+                    console.error('Error getting cameras:', error);
+                }
+            }
+            
+            bindEvents() {
+                document.getElementById('start-camera').addEventListener('click', () => this.startCamera());
+                document.getElementById('stop-camera').addEventListener('click', () => this.stopCamera());
+                document.getElementById('analyze-camera').addEventListener('click', () => this.analyzeScan());
+                document.getElementById('scan-again').addEventListener('click', () => this.resetScan());
+                
+                // Tab change cleanup
+                document.querySelectorAll('a[data-bs-toggle="tab"]').forEach(tab => {
+                    tab.addEventListener('shown.bs.tab', (event) => {
+                        if (event.target.getAttribute('href') !== '#camera') {
+                            this.stopCamera();
+                        }
+                    });
+                });
+            }
+            
+            async startCamera() {
+                if (this.scanning) return;
+                
+                const select = document.getElementById('camera-select');
+                const deviceId = select.value;
+                
+                const constraints = {
+                    video: {
+                        facingMode: 'environment', // Prefer rear camera
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 }
+                    }
+                };
+                
+                if (deviceId) {
+                    constraints.video.deviceId = { exact: deviceId };
+                }
+                
+                try {
+                    this.mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
+                    this.video.srcObject = this.mediaStream;
+                    this.video.play();
+                    
+                    this.scanning = true;
+                    this.updateUIState(true);
+                    this.hideError();
+                    
+                    // Start scanning for QR codes
+                    this.scanFrame();
+                    
+                } catch (error) {
+                    this.showError(`Camera error: ${error.message}`);
+                    console.error('Camera error:', error);
+                }
+            }
+            
+            stopCamera() {
+                if (this.mediaStream) {
+                    this.mediaStream.getTracks().forEach(track => track.stop());
+                    this.mediaStream = null;
+                }
+                
+                if (this.video.srcObject) {
+                    this.video.srcObject = null;
+                }
+                
+                this.scanning = false;
+                this.updateUIState(false);
+            }
+            
+            updateUIState(isScanning) {
+                document.getElementById('start-camera').disabled = isScanning;
+                document.getElementById('stop-camera').disabled = !isScanning;
+                document.getElementById('camera-select').disabled = isScanning;
+            }
+            
+            showError(message) {
+                const errorDiv = document.getElementById('camera-error');
+                errorDiv.textContent = message;
+                errorDiv.style.display = 'block';
+            }
+            
+            hideError() {
+                document.getElementById('camera-error').style.display = 'none';
+            }
+            
+            scanFrame() {
+                if (!this.scanning) return;
+                
+                // Set canvas dimensions to match video
+                if (this.video.readyState === this.video.HAVE_ENOUGH_DATA) {
+                    this.canvas.height = this.video.videoHeight;
+                    this.canvas.width = this.video.videoWidth;
+                    
+                    // Draw video frame to canvas
+                    this.canvasContext.drawImage(this.video, 0, 0, this.canvas.width, this.canvas.height);
+                    
+                    // Get image data from canvas
+                    const imageData = this.canvasContext.getImageData(0, 0, this.canvas.width, this.canvas.height);
+                    
+                    // Try to decode QR code
+                    const code = jsQR(imageData.data, imageData.width, imageData.height, {
+                        inversionAttempts: 'dontInvert',
+                    });
+                    
+                    if (code) {
+                        this.onQRScanned(code.data);
+                    }
+                }
+                
+                // Continue scanning
+                requestAnimationFrame(() => this.scanFrame());
+            }
+            
+            onQRScanned(content) {
+                console.log('QR Code scanned:', content);
+                
+                // Stop camera
+                this.stopCamera();
+                
+                // Display result
+                const scannedContent = document.getElementById('scanned-content');
+                const scannedResult = document.getElementById('scanned-result');
+                
+                if (scannedContent && scannedResult) {
+                    scannedContent.textContent = content;
+                    scannedResult.style.display = 'block';
+                    
+                    // Vibrate if supported
+                    if ('vibrate' in navigator) {
+                        navigator.vibrate(100);
+                    }
+                    
+                    // Play sound
+                    this.playScanSound();
+                }
+            }
+            
+            analyzeScan() {
+                const content = document.getElementById('scanned-content').textContent;
+                if (content) {
+                    this.submitScan(content);
+                }
+            }
+            
+            submitScan(content) {
+                // Create form and submit
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = '/scan';
+                
+                const methodInput = document.createElement('input');
+                methodInput.type = 'hidden';
+                methodInput.name = 'scan_method';
+                methodInput.value = 'webcam';
+                form.appendChild(methodInput);
+                
+                const contentInput = document.createElement('input');
+                contentInput.type = 'hidden';
+                contentInput.name = 'webcam_data';
+                contentInput.value = content;
+                form.appendChild(contentInput);
+                
+                document.body.appendChild(form);
+                form.submit();
+            }
+            
+            resetScan() {
+                document.getElementById('scanned-result').style.display = 'none';
+                document.getElementById('scanned-content').textContent = '';
+                this.startCamera();
+            }
+            
+            playScanSound() {
+                try {
+                    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    const oscillator = audioContext.createOscillator();
+                    const gainNode = audioContext.createGain();
+                    
+                    oscillator.connect(gainNode);
+                    gainNode.connect(audioContext.destination);
+                    
+                    oscillator.frequency.value = 800;
+                    oscillator.type = 'sine';
+                    
+                    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+                    
+                    oscillator.start(audioContext.currentTime);
+                    oscillator.stop(audioContext.currentTime + 0.5);
+                } catch (error) {
+                    console.log('Could not play scan sound:', error);
+                }
+            }
+        }
+        
+        // Initialize scanner when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            window.qrScanner = new QRScanner();
+            
+            // Handle tab parameter from URL
+            const urlParams = new URLSearchParams(window.location.search);
+            const tabParam = urlParams.get('tab');
+            
+            if (tabParam) {
+                const tabElement = document.querySelector(`[href="#${tabParam}"]`);
+                if (tabElement) {
+                    const tab = new bootstrap.Tab(tabElement);
+                    tab.show();
+                }
+            }
+        });
+    </script>
+</body>
+</html>
+
+===== ./templates/history.html =====
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scan History</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .delete-btn {
+            transition: all 0.2s;
+        }
+        .delete-btn:hover {
+            transform: scale(1.1);
+        }
+        .confirm-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+        }
+        .confirm-box {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            max-width: 500px;
+            margin: 100px auto;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+        }
+    </style>
+    
+    <style>
+    /* Mobile friendly history page */
+    
+    .table-responsive {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    @media (max-width: 768px) {
+        .container {
+            padding: 10px;
+        }
+
+        h2 {
+            font-size: 1.4rem;
+        }
+
+        .d-flex.justify-content-between {
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .btn-group {
+            width: 100%;
+        }
+
+        .btn-group .btn {
+            width: 100%;
+        }
+
+        .input-group {
+            margin-bottom: 10px;
+        }
+
+        /* Fixed minimum width forces horizontal scroll */
+        .table {
+            font-size: 0.78rem;
+            min-width: 550px;
+        }
+
+        /* Hide only Scan ID column */
+        .table thead tr th:nth-child(1),
+        .table tbody tr td:nth-child(1) {
+            display: none;
+        }
+
+        .progress {
+            min-width: 60px;
+            height: 16px !important;
+        }
+
+        .progress-bar {
+            font-size: 0.7rem;
+        }
+
+        .badge {
+            font-size: 0.65rem;
+            padding: 4px 6px;
+        }
+
+        .btn-group-sm .btn {
+            padding: 4px 8px;
+            font-size: 0.75rem;
+        }
+
+        .d-flex.justify-content-between.align-items-center {
+            flex-direction: column;
+            gap: 8px;
+            text-align: center;
+        }
+
+        .confirm-box {
+            margin: 60px 15px;
+            padding: 20px;
+        }
+
+        .card-body.text-center.py-5 {
+            padding: 30px 15px !important;
+        }
+    }
+
+    /* Extra small screens - still keep date/time, just smaller */
+    @media (max-width: 400px) {
+        .table {
+            font-size: 0.70rem;
+            min-width: 500px;
+        }
+    }
+</style>
+
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="/">
+                <i class="fas fa-qrcode"></i> Secure QR Scanner
+            </a>
+        </div>
+    </nav>
+
+<div class="card mb-3">
+    <div class="card-body">
+        <div class="input-group">
+            <span class="input-group-text">
+                <i class="fas fa-search"></i>
+            </span>
+            <input type="text" id="searchInput" class="form-control" placeholder="Search history..." onkeyup="searchHistory()">
+            <button class="btn btn-outline-secondary" type="button" onclick="searchHistory()">
+                Search
+            </button>
+        </div>
+    </div>
+</div>
+
+    <div class="container mt-5">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>
+                <i class="fas fa-history"></i> Scan History
+            </h2>
+            
+            {% if scans and scans|length > 0 %}
+<div class="btn-group">
+    <button type="button" class="btn btn-danger" onclick="showDeleteAllModal()">
+        <i class="fas fa-trash-alt"></i> Delete All
+    </button>
+</div>
+{% endif %}
+        
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ 'danger' if category == 'error' else 'success' }} alert-dismissible fade show">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        
+        {% if scans and scans|length > 0 %}
+        <div class="card shadow">
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Scan ID</th>
+                                <th>Type</th>
+                                <th>Threat Score</th>
+                                <th>Status</th>
+                                <th>Timestamp</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for scan in scans %}
+                            <tr id="scan-{{ scan.scan_id }}">
+                                <td>
+                                    <code>{{ scan.scan_id[:8] }}...</code>
+                                    <br>
+                                    <small class="text-muted">{{ scan.qr_content[:30] }}{% if scan.qr_content|length > 30 %}...{% endif %}</small>
+                                </td>
+                                <td>
+                                    <span class="badge bg-secondary">{{ scan.qr_type|upper }}</span>
+                                </td>
+                                <td>
+                                    <div class="progress" style="height: 20px;">
+                                        <div class="progress-bar {% if scan.threat_score >= 60 %}bg-danger{% elif scan.threat_score >= 30 %}bg-warning{% elif scan.threat_score >= 15 %}bg-info{% else %}bg-success{% endif %}" 
+                                             role="progressbar" 
+                                             style="width: {{ scan.threat_score }}%">
+                                            {{ scan.threat_score|round(1) }}
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    {% if scan.is_malicious %}
+                                    <span class="badge bg-danger">MALICIOUS</span>
+                                    {% elif scan.threat_score >= 30 %}
+                                    <span class="badge bg-warning">SUSPICIOUS</span>
+                                    {% elif scan.threat_score >= 15 %}
+                                    <span class="badge bg-info">LOW RISK</span>
+                                    {% else %}
+                                    <span class="badge bg-success">SAFE</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ scan.timestamp.strftime('%Y-%m-%d %H:%M') }}</td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="/api/scan/{{ scan.scan_id }}" class="btn btn-outline-primary" target="_blank">
+                                            <i class="fas fa-info-circle"></i>
+                                        </a>
+                                        <button onclick="showDeleteModal('{{ scan.scan_id }}')" class="btn btn-outline-danger delete-btn">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- Pagination (optional) -->
+                <div class="d-flex justify-content-between align-items-center mt-3">
+    <div class="text-muted">
+        Showing {{ scans|length }} of {{ pagination.total }} scan{{ 's' if pagination.total != 1 else '' }}
+    </div>
+    <div>
+        {% if pagination.has_prev %}
+        <a href="{{ url_for('history', page=pagination.prev_num) }}" class="btn btn-outline-secondary btn-sm">
+            <i class="fas fa-chevron-left"></i> Previous
+        </a>
+        {% endif %}
+        
+        <span class="mx-2">
+            Page {{ pagination.page }} of {{ pagination.pages }}
+        </span>
+        
+        {% if pagination.has_next %}
+        <a href="{{ url_for('history', page=pagination.next_num) }}" class="btn btn-outline-secondary btn-sm">
+            Next <i class="fas fa-chevron-right"></i>
+        </a>
+        {% endif %}
+    </div>
+</div>
+            </div>
+        </div>
+        {% else %}
+        <div class="card shadow">
+            <div class="card-body text-center py-5">
+                <i class="fas fa-history fa-3x text-muted mb-3"></i>
+                <h4>No scan history yet</h4>
+                <p class="text-muted">Start by scanning your first QR code</p>
+                <a href="/scan" class="btn btn-primary">
+                    <i class="fas fa-qrcode"></i> Scan QR Code
+                </a>
+            </div>
+        </div>
+        {% endif %}
+        
+        <div class="mt-3">
+            <a href="/" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Home
+            </a>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal for Single Scan -->
+    <div id="deleteModal" class="confirm-modal">
+        <div class="confirm-box">
+            <h4><i class="fas fa-exclamation-triangle text-warning"></i> Confirm Delete</h4>
+            <p id="deleteMessage">Are you sure you want to delete this scan?</p>
+            <div class="mt-4">
+                <form id="deleteForm" method="POST">
+                    <input type="hidden" name="scan_id" id="deleteScanId">
+                    <div class="d-flex justify-content-end">
+                        <button type="button" class="btn btn-secondary me-2" onclick="hideDeleteModal()">Cancel</button>
+                        <button type="submit" class="btn btn-danger">
+                            <i class="fas fa-trash"></i> Delete
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete All Confirmation Modal -->
+    <div id="deleteAllModal" class="confirm-modal">
+        <div class="confirm-box">
+            <h4><i class="fas fa-exclamation-triangle text-danger"></i> Delete All History</h4>
+            <p>Are you sure you want to delete ALL scan history? This action cannot be undone.</p>
+            <div class="mt-4">
+                <form id="deleteAllForm" action="{{ url_for('delete_all_history') }}" method="POST">
+                    <div class="d-flex justify-content-end">
+                        <button type="button" class="btn btn-secondary me-2" onclick="hideDeleteAllModal()">Cancel</button>
+                        <button type="submit" class="btn btn-danger">
+                            <i class="fas fa-trash-alt"></i> Delete All
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Single scan delete modal
+        let currentScanId = null;
+        
+        function showDeleteModal(scanId) {
+            currentScanId = scanId;
+            const scanRow = document.getElementById(`scan-${scanId}`);
+            const scanContent = scanRow.querySelector('small').textContent;
+            
+            document.getElementById('deleteMessage').textContent = 
+                `Are you sure you want to delete this scan?\n\nContent: ${scanContent}`;
+            document.getElementById('deleteScanId').value = scanId;
+            
+            // Set up form action
+            document.getElementById('deleteForm').action = `/delete_scan/${scanId}`;
+            
+            document.getElementById('deleteModal').style.display = 'block';
+        }
+        
+        function hideDeleteModal() {
+            document.getElementById('deleteModal').style.display = 'none';
+            currentScanId = null;
+        }
+        
+        // Delete all modal
+        function showDeleteAllModal() {
+            document.getElementById('deleteAllModal').style.display = 'block';
+        }
+        
+        function hideDeleteAllModal() {
+            document.getElementById('deleteAllModal').style.display = 'none';
+        }
+        
+        // Close modals when clicking outside
+        window.onclick = function(event) {
+            const deleteModal = document.getElementById('deleteModal');
+            const deleteAllModal = document.getElementById('deleteAllModal');
+            
+            if (event.target === deleteModal) {
+                hideDeleteModal();
+            }
+            if (event.target === deleteAllModal) {
+                hideDeleteAllModal();
+            }
+        }
+        
+        // Keyboard support
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                hideDeleteModal();
+                hideDeleteAllModal();
+            }
+        });
+        
+        // Optional: Add search functionality
+        function searchHistory() {
+            const input = document.getElementById('searchInput');
+            const filter = input.value.toLowerCase();
+            const rows = document.querySelectorAll('tbody tr');
+            
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                row.style.display = text.includes(filter) ? '' : 'none';
+            });
+        }
+        
+        // Optional: Add bulk delete with checkboxes
+        function initBulkDelete() {
+            // Add checkboxes to each row
+            const table = document.querySelector('table');
+            if (table) {
+                const headerRow = table.querySelector('thead tr');
+                headerRow.innerHTML = '<th><input type="checkbox" id="selectAll"></th>' + headerRow.innerHTML;
+                
+                const rows = table.querySelectorAll('tbody tr');
+                rows.forEach((row, index) => {
+                    const firstCell = row.querySelector('td');
+                    const checkbox = document.createElement('input');
+                    checkbox.type = 'checkbox';
+                    checkbox.className = 'row-checkbox';
+                    checkbox.value = row.id.replace('scan-', '');
+                    
+                    const td = document.createElement('td');
+                    td.appendChild(checkbox);
+                    row.prepend(td);
+                });
+                
+                // Select all functionality
+                document.getElementById('selectAll').addEventListener('change', function() {
+                    const checkboxes = document.querySelectorAll('.row-checkbox');
+                    checkboxes.forEach(cb => cb.checked = this.checked);
+                });
+            }
+        }
+        
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            // Uncomment if you want bulk delete
+            // initBulkDelete();
+        });
+    </script>
+</body>
+</html>
+
+===== ./templates/redirect_upi.html =====
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UPI Payment</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .payment-card {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        .upi-icon {
+            font-size: 4rem;
+            color: #5A67D8;
+        }
+    </style>
+</head>
+<body class="bg-light">
+    <div class="container vh-100 d-flex align-items-center justify-content-center">
+        <div class="card payment-card shadow-lg">
+            <div class="card-body text-center p-5">
+                <div class="mb-4">
+                    <div class="upi-icon mb-3">
+                        <i class="fas fa-rupee-sign"></i>
+                    </div>
+                    <h2 class="card-title">UPI Payment</h2>
+                    <p class="text-muted">This QR code contains a UPI payment request</p>
+                </div>
+                
+                <div class="alert alert-success mb-4">
+                    <h5><i class="fas fa-shield-check"></i> Security Verified</h5>
+                    <p class="mb-0">
+                        Threat Score: {{ scan.threat_score|round(1) }}/100<br>
+                        Scan ID: {{ scan.scan_id[:8] }}...
+                    </p>
+                </div>
+                
+                <div class="mb-4">
+                    <h5>Payment Details:</h5>
+                    <div class="card">
+                        <div class="card-body text-start">
+                            {% set upi_data = parse_upi_string(scan.qr_content) %}
+                            <p><strong>UPI ID:</strong> <code>{{ upi_data.pa }}</code></p>
+                            <p><strong>Payee Name:</strong> {{ upi_data.pn }}</p>
+                            {% if upi_data.am %}
+                            <p><strong>Amount:</strong> ₹{{ upi_data.am }}</p>
+                            {% endif %}
+                            <p><strong>Transaction ID:</strong> <small>{{ scan.scan_id[:12] }}</small></p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mb-4">
+                    <h4>Opening payment app in:</h4>
+                    <div class="countdown" id="countdown">3</div>
+                </div>
+                
+                <div class="d-grid gap-2">
+                    <button onclick="initiateUPIPayment()" class="btn btn-success btn-lg" id="pay-btn">
+                        <i class="fas fa-external-link-alt"></i> Open Payment App
+                    </button>
+                    <button onclick="copyUPIDetails()" class="btn btn-primary btn-lg">
+                        <i class="fas fa-copy"></i> Copy UPI Details
+                    </button>
+                    <a href="/" class="btn btn-outline-secondary">
+                        <i class="fas fa-times"></i> Cancel
+                    </a>
+                </div>
+                
+                <div class="mt-4 text-muted small">
+                    <i class="fas fa-info-circle"></i>
+                    Make sure you verify the payee name and amount before paying
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let countdown = 3;
+        const countdownElement = document.getElementById('countdown');
+        const upiString = "{{ scan.qr_content }}";
+        
+        function parseUPIString(upiString) {
+            try {
+                const url = new URL(upiString);
+                const params = new URLSearchParams(url.search);
+                return {
+                    pa: params.get('pa') || 'N/A',
+                    pn: params.get('pn') || 'N/A',
+                    am: params.get('am') || null
+                };
+            } catch (e) {
+                return { pa: upiString, pn: 'N/A', am: null };
+            }
+        }
+        
+        function updateCountdown() {
+            countdownElement.textContent = countdown;
+            
+            if (countdown === 0) {
+                initiateUPIPayment();
+            } else {
+                countdown--;
+                setTimeout(updateCountdown, 1000);
+            }
+        }
+        
+        function initiateUPIPayment() {
+            // Try to open UPI app directly
+            window.location.href = upiString;
+            
+            // Fallback: Show manual option
+            setTimeout(() => {
+                const upiData = parseUPIString(upiString);
+                if (confirm(`If payment app didn't open, please:\n\n1. Open your UPI app (GPay, PhonePe, etc.)\n2. Enter UPI ID: ${upiData.pa}\n\nClick OK to copy UPI ID to clipboard`)) {
+                    copyToClipboard(upiData.pa);
+                }
+            }, 1500);
+        }
+        
+        function copyUPIDetails() {
+            const upiData = parseUPIString(upiString);
+            const details = `UPI ID: ${upiData.pa}\nPayee: ${upiData.pn}${upiData.am ? `\nAmount: ₹${upiData.am}` : ''}`;
+            
+            copyToClipboard(details);
+            alert('UPI details copied to clipboard!');
+        }
+        
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                console.log('Copied to clipboard');
+            }).catch(err => {
+                console.error('Failed to copy: ', err);
+            });
+        }
+        
+        // Start countdown
+        updateCountdown();
+    </script>
+</body>
+</html>
+
+===== ./templates/redirect.html =====
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Safe Redirect</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .redirect-card {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        .countdown {
+            font-size: 4rem;
+            font-weight: bold;
+            color: #28a745;
+        }
+    </style>
+</head>
+<body class="bg-light">
+    <div class="container vh-100 d-flex align-items-center justify-content-center">
+        <div class="card redirect-card shadow-lg">
+            <div class="card-body text-center p-5">
+                <div class="mb-4">
+                    <i class="fas fa-shield-check fa-4x text-success mb-3"></i>
+                    <h2 class="card-title">Safe Redirect</h2>
+                    <p class="text-muted">This URL has passed security checks</p>
+                </div>
+                
+                <div class="alert alert-success mb-4">
+                    <h5><i class="fas fa-check-circle"></i> Security Verified</h5>
+                    <p class="mb-0">
+                        Threat Score: {{ scan.threat_score|round(1) }}/100<br>
+                        Scan ID: {{ scan.scan_id[:8] }}...
+                    </p>
+                </div>
+                
+                <div class="mb-4">
+                    <p>You are being redirected to:</p>
+                    <div class="alert alert-light">
+                        <code>{{ url|truncate(50) }}</code>
+                    </div>
+                </div>
+                
+                <div class="mb-4">
+                    <h4>Redirecting in:</h4>
+                    <div class="countdown" id="countdown">5</div>
+                </div>
+                
+                <div class="d-grid gap-2">
+                    <a href="{{ url }}" class="btn btn-success btn-lg" id="redirect-btn">
+                        <i class="fas fa-external-link-alt"></i> Go Now
+                    </a>
+                    <a href="/" class="btn btn-outline-secondary">
+                        <i class="fas fa-times"></i> Cancel
+                    </a>
+                </div>
+                
+                <div class="mt-4 text-muted small">
+                    <i class="fas fa-info-circle"></i>
+                    Always verify the URL in your browser's address bar after redirecting
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let countdown = 5;
+        const countdownElement = document.getElementById('countdown');
+        const redirectBtn = document.getElementById('redirect-btn');
+        
+        function updateCountdown() {
+            countdownElement.textContent = countdown;
+            
+            if (countdown === 0) {
+                window.location.href = redirectBtn.href;
+            } else {
+                countdown--;
+                setTimeout(updateCountdown, 1000);
+            }
+        }
+        
+        // Start countdown
+        updateCountdown();
+        
+        // Manual redirect
+        redirectBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            window.location.href = this.href;
+        });
+    </script>
+</body>
+</html>
+
+===== ./templates/redirect_other.html =====
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Code Content</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-5">
+        <div class="card">
+            <div class="card-header bg-success text-white">
+                <h4><i class="fas fa-check-circle"></i> Safe Content Verified</h4>
+            </div>
+            <div class="card-body">
+                <h5>QR Code Type: {{ scan.qr_type|upper }}</h5>
+                <div class="alert alert-light mt-3">
+                    <pre>{{ scan.qr_content }}</pre>
+                </div>
+                <div class="mt-3">
+                    <a href="/" class="btn btn-primary">Scan Another</a>
+                    <button onclick="copyToClipboard('{{ scan.qr_content }}')" class="btn btn-secondary">
+                        Copy Content
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                alert('Copied to clipboard!');
+            });
+        }
+    </script>
+</body>
+</html>
+
+===== ./templates/result.html =====
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scan Result</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .threat-score {
+            font-size: 3rem;
+            font-weight: bold;
+        }
+        .score-safe { color: #28a745; }
+        .score-low { color: #17a2b8; }
+        .score-suspicious { color: #ffc107; }
+        .score-malicious { color: #dc3545; }
+        .check-card { transition: transform 0.2s; }
+        .check-card:hover { transform: translateY(-5px); }
+        .check-icon { font-size: 2rem; }
+        .check-pass { color: #28a745; }
+        .check-warn { color: #ffc107; }
+        .check-fail { color: #dc3545; }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="/">
+                <i class="fas fa-qrcode"></i> Secure QR Scanner
+            </a>
+        </div>
+    </nav>
+
+    <div class="container mt-5">
+        <div class="row">
+            <div class="col-lg-10 mx-auto">
+
+                <!-- Threat Score Card -->
+                <div class="card shadow-lg mb-4">
+                    <div class="card-body text-center">
+                        <h2 class="card-title mb-4">Security Analysis Result</h2>
+                        
+                        <div class="threat-score mb-3 score-{{ result.threat_score.color }}">
+                            {{ result.threat_score.total_score }}/100
+                        </div>
+                        
+                        <div class="alert alert-{{ result.threat_score.color }} mb-4">
+                            <h4 class="alert-heading">
+                                <i class="fas fa-{% if result.threat_score.threat_level == 'SAFE' %}check-circle{% elif result.threat_score.threat_level == 'MALICIOUS' %}exclamation-triangle{% else %}exclamation-circle{% endif %}"></i>
+                                {{ result.threat_score.threat_level }}
+                            </h4>
+                            <p class="mb-0">
+                                {% if result.is_malicious %}
+                                <strong>BLOCKED:</strong> This QR code has been flagged as malicious
+                                {% elif result.is_suspicious %}
+                                <strong>WARNING:</strong> This QR code shows suspicious characteristics
+                                {% else %}
+                                <strong>SAFE:</strong> This QR code appears to be safe
+                                {% endif %}
+                            </p>
+                        </div>
+
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <div class="card h-100">
+                                    <div class="card-body">
+                                        <h5><i class="fas fa-info-circle"></i> QR Information</h5>
+                                        <p><strong>Type:</strong> {{ result.qr_info.type|upper }}</p>
+                                        <p><strong>Content:</strong></p>
+                                        <div class="alert alert-light">
+                                            <code>{{ result.qr_content[:100] }}{% if result.qr_content|length > 100 %}...{% endif %}</code>
+                                        </div>
+                                        <p><strong>Scan ID:</strong> {{ result.scan_id }}</p>
+                                        <p><strong>Timestamp:</strong> {{ result.timestamp }}</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card h-100">
+                                    <div class="card-body">
+                                        <h5><i class="fas fa-exclamation-triangle"></i> Warnings</h5>
+                                        {% if result.security_report.warnings %}
+                                        <div class="alert alert-warning">
+                                            <ul class="mb-0">
+                                                {% for warning in result.security_report.warnings %}
+                                                <li>{{ warning }}</li>
+                                                {% endfor %}
+                                            </ul>
+                                        </div>
+                                        {% else %}
+                                        <div class="alert alert-success">
+                                            <i class="fas fa-check"></i> No security warnings detected
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-center">
+                            {% if not result.is_malicious %}
+                                {% if result.qr_info.type == 'url' and result.redirect_url %}
+                                    <a href="/redirect/{{ result.scan_id }}" class="btn btn-success btn-lg">
+                                        <i class="fas fa-external-link-alt"></i> Safe Redirect
+                                    </a>
+                                {% elif result.qr_info.type == 'upi' %}
+                                    <button onclick="openUPIApp('{{ result.qr_content }}')" class="btn btn-success btn-lg">
+                                        <i class="fas fa-rupee-sign"></i> Pay with UPI
+                                    </button>
+                                {% endif %}
+                            {% endif %}
+                            
+                            <a href="/scan" class="btn btn-primary btn-lg">
+                                <i class="fas fa-redo"></i> Scan Another QR
+                            </a>
+                            
+                            <a href="/" class="btn btn-outline-secondary btn-lg">
+                                <i class="fas fa-home"></i> Home
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Security Checks Breakdown -->
+                <div class="card shadow">
+                    <div class="card-header bg-dark text-white">
+                        <h4 class="mb-0">
+                            <i class="fas fa-shield-alt"></i> Security Analysis Details
+                        </h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+
+                            <!-- Google Safe Browsing Card -->
+                            {% if result.security_report.checks and 'safe_browsing' in result.security_report.checks %}
+                            {% set sb = result.security_report.checks.safe_browsing %}
+                            <div class="col-md-6 col-lg-4 mb-4">
+                                <div class="card check-card h-100">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <h6 class="card-title mb-0">Google Safe Browsing</h6>
+                                            {% if 'safe_browsing' in result.threat_score.breakdown %}
+                                            <span class="badge bg-danger">{{ result.threat_score.breakdown.safe_browsing.score|int }}</span>
+                                            {% else %}
+                                            <span class="badge bg-success">0</span>
+                                            {% endif %}
+                                        </div>
+                                        <p class="card-text small">
+                                            {% if sb.safe %}
+                                            <i class="fas fa-check-circle check-pass"></i> Safe — No threats detected
+                                            {% else %}
+                                            <i class="fas fa-times-circle check-fail"></i> Threat detected
+                                            {% if sb.threats %}
+                                            <br><small class="text-danger">{{ sb.threats[0].threatType }}</small>
+                                            {% endif %}
+                                            {% endif %}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endif %}
+
+                            <!-- VirusTotal Card -->
+                            {% if result.security_report.checks and 'virustotal' in result.security_report.checks %}
+                            {% set vt = result.security_report.checks.virustotal %}
+                            <div class="col-md-6 col-lg-4 mb-4">
+                                <div class="card check-card h-100">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <h6 class="card-title mb-0">VirusTotal</h6>
+                                            {% if 'virustotal' in result.threat_score.breakdown %}
+                                            <span class="badge bg-danger">{{ result.threat_score.breakdown.virustotal.score|int }}</span>
+                                            {% else %}
+                                            <span class="badge bg-success">0</span>
+                                            {% endif %}
+                                        </div>
+                                        <p class="card-text small">
+                                            {% if vt.available %}
+                                                {% if vt.positives > 0 %}
+                                                <i class="fas fa-times-circle check-fail"></i>
+                                                <strong class="text-danger">{{ vt.positives }}/{{ vt.total }} engines flagged</strong>
+                                                <br><small class="text-muted">Scanned: {{ vt.scan_date }}</small>
+                                                {% else %}
+                                                <i class="fas fa-check-circle check-pass"></i> Clean
+                                                <br><small class="text-muted">0/{{ vt.total }} engines flagged</small>
+                                                {% endif %}
+                                            {% else %}
+                                            <i class="fas fa-info-circle text-muted"></i>
+                                            <span class="text-muted">{{ vt.message if vt.message else 'Not available' }}</span>
+                                            {% endif %}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endif %}
+
+                            <!-- WHOIS Card -->
+                            {% if result.security_report.checks and 'whois' in result.security_report.checks %}
+                            {% set whois = result.security_report.checks.whois %}
+                            <div class="col-md-6 col-lg-4 mb-4">
+                                <div class="card check-card h-100">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <h6 class="card-title mb-0">Whois</h6>
+                                            {% if 'domain_age' in result.threat_score.breakdown %}
+                                            <span class="badge bg-danger">{{ result.threat_score.breakdown.domain_age.score|int }}</span>
+                                            {% else %}
+                                            <span class="badge bg-success">0</span>
+                                            {% endif %}
+                                        </div>
+                                        <p class="card-text small">
+                                            {% if whois.age_days %}
+                                            <i class="fas fa-{% if whois.is_new %}exclamation-triangle check-warn{% else %}check-circle check-pass{% endif %}"></i>
+                                            {{ whois.age_days }} days old
+                                            {% if whois.is_new %}
+                                            <br><small class="text-warning">New domain — suspicious</small>
+                                            {% endif %}
+                                            {% else %}
+                                            <i class="fas fa-question-circle"></i> Unknown
+                                            {% if whois.error %}
+                                            <br><small class="text-muted">{{ whois.error }}</small>
+                                            {% endif %}
+                                            {% endif %}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endif %}
+
+                            <!-- SSL Card -->
+                            {% if result.security_report.checks and 'ssl' in result.security_report.checks %}
+                            {% set ssl = result.security_report.checks.ssl %}
+                            <div class="col-md-6 col-lg-4 mb-4">
+                                <div class="card check-card h-100">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <h6 class="card-title mb-0">SSL Certificate</h6>
+                                            {% if 'ssl' in result.threat_score.breakdown %}
+                                            <span class="badge bg-danger">{{ result.threat_score.breakdown.ssl.score|int }}</span>
+                                            {% else %}
+                                            <span class="badge bg-success">0</span>
+                                            {% endif %}
+                                        </div>
+                                        <p class="card-text small">
+                                            {% if ssl.valid %}
+                                            <i class="fas fa-check-circle check-pass"></i> Valid
+                                            {% if ssl.expiry_days < 30 %}
+                                            <br><small class="text-warning">Expires in {{ ssl.expiry_days }} days</small>
+                                            {% else %}
+                                            <br><small class="text-muted">Expires in {{ ssl.expiry_days }} days</small>
+                                            {% endif %}
+                                            {% else %}
+                                            <i class="fas fa-times-circle check-fail"></i> Invalid
+                                            {% if ssl.error %}
+                                            <br><small class="text-muted">{{ ssl.error[:50] }}</small>
+                                            {% endif %}
+                                            {% endif %}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endif %}
+
+                            <!-- Redirects Card -->
+                            {% if result.security_report.checks and 'redirects' in result.security_report.checks %}
+                            {% set redirects = result.security_report.checks.redirects %}
+                            <div class="col-md-6 col-lg-4 mb-4">
+                                <div class="card check-card h-100">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <h6 class="card-title mb-0">Redirects</h6>
+                                            {% if 'redirects' in result.threat_score.breakdown %}
+                                            <span class="badge bg-danger">{{ result.threat_score.breakdown.redirects.score|int }}</span>
+                                            {% else %}
+                                            <span class="badge bg-success">0</span>
+                                            {% endif %}
+                                        </div>
+                                        <p class="card-text small">
+                                            <i class="fas fa-{% if redirects.count > 2 %}exclamation-triangle check-warn{% else %}check-circle check-pass{% endif %}"></i>
+                                            {{ redirects.count }} redirect{{ 's' if redirects.count != 1 else '' }}
+                                            {% if redirects.final_url and redirects.final_url != result.qr_content %}
+                                            <br><small class="text-muted">Final: {{ redirects.final_url[:40] }}...</small>
+                                            {% endif %}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endif %}
+
+                            <!-- Shortlink Card -->
+                            {% if result.security_report.checks and 'shortlink' in result.security_report.checks %}
+                            {% set shortlink = result.security_report.checks.shortlink %}
+                            <div class="col-md-6 col-lg-4 mb-4">
+                                <div class="card check-card h-100">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <h6 class="card-title mb-0">Shortlink</h6>
+                                            {% if 'shortlink' in result.threat_score.breakdown %}
+                                            <span class="badge bg-danger">{{ result.threat_score.breakdown.shortlink.score|int }}</span>
+                                            {% else %}
+                                            <span class="badge bg-success">0</span>
+                                            {% endif %}
+                                        </div>
+                                        <p class="card-text small">
+                                            {% if shortlink.is_shortlink %}
+                                            <i class="fas fa-exclamation-triangle check-warn"></i> URL shortener detected
+                                            {% else %}
+                                            <i class="fas fa-check-circle check-pass"></i> Not a shortlink
+                                            {% endif %}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endif %}
+
+                            <!-- Spoof Card -->
+                            {% if result.security_report.checks and 'spoof' in result.security_report.checks %}
+                            {% set spoof = result.security_report.checks.spoof %}
+                            <div class="col-md-6 col-lg-4 mb-4">
+                                <div class="card check-card h-100">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <h6 class="card-title mb-0">Spoof Detection</h6>
+                                            {% if 'spoof' in result.threat_score.breakdown %}
+                                            <span class="badge bg-danger">{{ result.threat_score.breakdown.spoof.score|int }}</span>
+                                            {% else %}
+                                            <span class="badge bg-success">0</span>
+                                            {% endif %}
+                                        </div>
+                                        <p class="card-text small">
+                                            {% if spoof.has_warnings %}
+                                            <i class="fas fa-exclamation-triangle check-warn"></i> Spoofing detected
+                                            <br><small class="text-danger">{{ spoof.warnings[0] if spoof.warnings else '' }}</small>
+                                            {% else %}
+                                            <i class="fas fa-check-circle check-pass"></i> No spoofing detected
+                                            {% endif %}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endif %}
+
+                            <!-- Homograph Card -->
+                            {% if result.security_report.checks and 'homograph' in result.security_report.checks %}
+                            {% set homograph = result.security_report.checks.homograph %}
+                            <div class="col-md-6 col-lg-4 mb-4">
+                                <div class="card check-card h-100">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <h6 class="card-title mb-0">Homograph Attack</h6>
+                                            {% if 'homograph' in result.threat_score.breakdown %}
+                                            <span class="badge bg-danger">{{ result.threat_score.breakdown.homograph.score|int }}</span>
+                                            {% else %}
+                                            <span class="badge bg-success">0</span>
+                                            {% endif %}
+                                        </div>
+                                        <p class="card-text small">
+                                            {% if homograph.is_homograph %}
+                                            <i class="fas fa-times-circle check-fail"></i> Homograph attack detected
+                                            {% else %}
+                                            <i class="fas fa-check-circle check-pass"></i> No Unicode spoofing
+                                            {% endif %}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endif %}
+
+                            <!-- Phishing Keywords Card -->
+                            {% if result.security_report.checks and 'phishing_keywords' in result.security_report.checks %}
+                            {% set pk = result.security_report.checks.phishing_keywords %}
+                            <div class="col-md-6 col-lg-4 mb-4">
+                                <div class="card check-card h-100">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <h6 class="card-title mb-0">Phishing Keywords</h6>
+                                            {% if 'phishing_keywords' in result.threat_score.breakdown %}
+                                            <span class="badge bg-danger">{{ result.threat_score.breakdown.phishing_keywords.score|int }}</span>
+                                            {% else %}
+                                            <span class="badge bg-success">0</span>
+                                            {% endif %}
+                                        </div>
+                                        <p class="card-text small">
+                                            {% if pk.is_suspicious %}
+                                            <i class="fas fa-exclamation-triangle check-warn"></i> {{ pk.count }} suspicious keywords
+                                            <br><small class="text-danger">{{ pk.found_keywords[:3]|join(', ') }}</small>
+                                            {% else %}
+                                            <i class="fas fa-check-circle check-pass"></i> No suspicious keywords
+                                            {% endif %}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endif %}
+
+                            <!-- Reputation Card -->
+                            {% if result.security_report.checks and 'reputation' in result.security_report.checks %}
+                            {% set rep = result.security_report.checks.reputation %}
+                            <div class="col-md-6 col-lg-4 mb-4">
+                                <div class="card check-card h-100">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <h6 class="card-title mb-0">Reputation</h6>
+                                            {% if 'blacklist' in result.threat_score.breakdown %}
+                                            <span class="badge bg-danger">{{ result.threat_score.breakdown.blacklist.score|int }}</span>
+                                            {% else %}
+                                            <span class="badge bg-success">0</span>
+                                            {% endif %}
+                                        </div>
+                                        <p class="card-text small">
+                                            {% if rep.blacklist_match %}
+                                            <i class="fas fa-times-circle check-fail"></i> Found in blacklist
+                                            {% elif rep.whitelist_match %}
+                                            <i class="fas fa-check-circle check-pass"></i> Trusted domain
+                                            {% else %}
+                                            <i class="fas fa-check-circle check-pass"></i> Not blacklisted
+                                            {% endif %}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endif %}
+
+                            <!-- Payment Fraud Card -->
+                            {% if result.security_report.checks and 'payment_fraud' in result.security_report.checks %}
+                            {% set pf = result.security_report.checks.payment_fraud %}
+                            <div class="col-md-6 col-lg-4 mb-4">
+                                <div class="card check-card h-100">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <h6 class="card-title mb-0">Payment Fraud</h6>
+                                            {% if 'payment_fraud' in result.threat_score.breakdown %}
+                                            <span class="badge bg-danger">{{ result.threat_score.breakdown.payment_fraud.score|int }}</span>
+                                            {% else %}
+                                            <span class="badge bg-success">0</span>
+                                            {% endif %}
+                                        </div>
+                                        <p class="card-text small">
+                                            {% if pf.has_warnings %}
+                                            <i class="fas fa-exclamation-triangle check-warn"></i> {{ pf.warning_count }} warning{{ 's' if pf.warning_count != 1 else '' }}
+                                            <br><small class="text-danger">{{ pf.warnings[0] if pf.warnings else '' }}</small>
+                                            {% else %}
+                                            <i class="fas fa-check-circle check-pass"></i> No payment fraud detected
+                                            {% endif %}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endif %}
+
+                        </div>
+
+                        <!-- Threat Score Breakdown Table -->
+                        <div class="mt-4">
+                            <h5>Threat Score Breakdown</h5>
+                            <div class="table-responsive">
+                                <table class="table table-bordered">
+                                    <thead>
+                                        <tr>
+                                            <th>Component</th>
+                                            <th>Score</th>
+                                            <th>Max</th>
+                                            <th>Reason</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for component, data in result.threat_score.breakdown.items() %}
+                                        <tr>
+                                            <td>{{ component|replace('_', ' ')|title }}</td>
+                                            <td>{{ data.score|round(1) }}</td>
+                                            <td>{{ data.max }}</td>
+                                            <td>{{ data.reason }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                        <tr class="table-active">
+                                            <td><strong>Total Score</strong></td>
+                                            <td colspan="3"><strong>{{ result.threat_score.total_score|round(1) }}/100</strong></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <div class="mt-4 text-center">
+                    <a href="/history" class="btn btn-outline-primary">
+                        <i class="fas fa-history"></i> View Scan History
+                    </a>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+    function openUPIApp(upiString) {
+        window.location.href = upiString;
+        setTimeout(function() {
+            if (confirm("If payment app didn't open, copy this UPI ID:\n\n" + extractUPIId(upiString) + "\n\nClick OK to copy to clipboard")) {
+                copyToClipboard(extractUPIId(upiString));
+            }
+        }, 1000);
+    }
+
+    function extractUPIId(upiString) {
+        try {
+            const url = new URL(upiString);
+            const params = new URLSearchParams(url.search);
+            return params.get('pa') || upiString;
+        } catch (e) {
+            return upiString;
+        }
+    }
+
+    function copyToClipboard(text) {
+        navigator.clipboard.writeText(text).then(function() {
+            alert("UPI ID copied to clipboard!");
+        }, function(err) {
+            alert("Failed to copy: " + err);
+        });
+    }
+    </script>
+</body>
+</html>
+
+===== ./templates/index.html =====
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Secure QR Code Verification System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="/">
+                <i class="fas fa-qrcode"></i> Secure QR Scanner
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="/">Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/scan">Scan QR</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/history">History</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-5">
+        <div class="row">
+            <div class="col-lg-8 mx-auto">
+                <div class="text-center mb-5">
+                    <h1 class="display-4 mb-3">
+                        <i class="fas fa-shield-alt text-primary"></i> Secure QR Verification
+                    </h1>
+                    <p class="lead text-muted">
+                        Advanced QR Code Scanning with Real-time Security Analysis
+                    </p>
+                </div>
+
+                <div class="card shadow-lg border-0">
+                    <div class="card-body p-5">
+                        <div class="row">
+                            <div class="col-md-6 mb-4">
+                                <div class="feature-card text-center p-4 h-100">
+                                    <div class="feature-icon mb-3">
+                                        <i class="fas fa-camera fa-3x text-primary"></i>
+                                    </div>
+                                    <h4>Webcam Scan</h4>
+                                    <p class="text-muted">Scan QR codes directly using your camera</p>
+                                    <a href="/scan" class="btn btn-primary">
+                                        <i class="fas fa-video"></i> Start Camera Scan
+                                    </a>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-4">
+                                <div class="feature-card text-center p-4 h-100">
+                                    <div class="feature-icon mb-3">
+                                        <i class="fas fa-upload fa-3x text-success"></i>
+                                    </div>
+                                    <h4>Image Upload</h4>
+                                    <p class="text-muted">Upload QR code images for analysis</p>
+                                    <a href="/scan?tab=upload" class="btn btn-success">
+                                        <i class="fas fa-cloud-upload-alt"></i> Upload Image
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="text-center mt-4">
+                            <div class="alert alert-info">
+                                <h5><i class="fas fa-info-circle"></i> Security Features</h5>
+                                <div class="row mt-3">
+                                    <div class="col-md-3">
+                                        <i class="fas fa-search text-danger"></i> URL Reputation
+                                    </div>
+                                    <div class="col-md-3">
+                                        <i class="fas fa-google text-success"></i> Safe Browsing
+                                    </div>
+                                    <div class="col-md-3">
+                                        <i class="fas fa-virus text-warning"></i> VirusTotal
+                                    </div>
+                                    <div class="col-md-3">
+                                        <i class="fas fa-lock text-primary"></i> SSL Check
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-5">
+                    <h3 class="text-center mb-4">How It Works</h3>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="step-card text-center p-3">
+                                <div class="step-number">1</div>
+                                <h5>Scan QR Code</h5>
+                                <p>Use webcam or upload QR image</p>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="step-card text-center p-3">
+                                <div class="step-number">2</div>
+                                <h5>Security Analysis</h5>
+                                <p>Multiple security checks performed</p>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="step-card text-center p-3">
+                                <div class="step-number">3</div>
+                                <h5>Safe Redirect</h5>
+                                <p>Only safe URLs are redirected</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="bg-dark text-white mt-5 py-4">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6">
+                    <h5>Secure QR Scanner</h5>
+                    <p>Advanced anti-scam protection for QR codes</p>
+                </div>
+                <div class="col-md-6 text-end">
+                    <p>&copy; 2024 Secure QR System. All rights reserved.</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
+
+===== ./config.py =====
+import os
+from datetime import timedelta
+
+class Config:
+    SECRET_KEY = os.environ.get('SECRET_KEY') or 'your-secret-key-here-change-in-production'
+    
+    # Database
+    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or 'sqlite:///qr_scans.db'
+    SQLALCHEMY_TRACK_MODIFICATIONS = False
+    
+    # File upload
+    MAX_CONTENT_LENGTH = 16 * 1024 * 1024  # 16MB max file size
+    UPLOAD_FOLDER = 'uploads'
+    ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'bmp', 'webp'}
+    
+    # API Keys (set in .env)
+    GOOGLE_SAFE_BROWSING_API_KEY = os.environ.get('GOOGLE_SAFE_BROWSING_API_KEY')
+    VIRUSTOTAL_API_KEY = os.environ.get('VIRUSTOTAL_API_KEY')
+    
+    # Security thresholds
+    DOMAIN_AGE_THRESHOLD = 90  # days
+    THREAT_SCORE_MALICIOUS = 20
+    THREAT_SCORE_SUSPICIOUS = 10
+    
+    # Timeouts
+    REQUEST_TIMEOUT = 10
+
+===== ./utils/security_analyzer.py =====
+import requests
+import ssl
+import socket
+import whois
+from datetime import datetime, timedelta, timezone
+import urllib.parse
+from urllib.parse import urlparse
+import json
+import time
+import re
+from typing import Dict, Any, List
+import idna
+import tldextract
+from dateutil import parser as dateutil_parser
+from utils.advanced_analyzer import WiFiAnalyzer, CryptoAnalyzer
+
+class SecurityAnalyzer:
+    def __init__(self, google_api_key=None, virustotal_api_key=None):
+        self.google_api_key = google_api_key
+        self.virustotal_api_key = virustotal_api_key
+        self.headers = {'User-Agent': 'SecureQRScanner/1.0'}
+        self.wifi_analyzer = WiFiAnalyzer()
+        self.crypto_analyzer = CryptoAnalyzer()
+        
+        # Phishing keywords
+        self.phishing_keywords = [
+            'login', 'verify', 'secure', 'account', 'banking', 'paypal',
+            'update', 'confirm', 'password', 'credential', 'urgent',
+            'suspicious', 'activity', 'locked', 'restricted'
+        ]
+        
+        # Common shorteners
+        self.short_domains = [
+            'bit.ly', 'tinyurl.com', 'goo.gl', 'ow.ly', 't.co',
+            'is.gd', 'buff.ly', 'adf.ly', 'shorte.st', 'bc.vc'
+        ]
+
+    def analyze_url(self, url: str) -> Dict[str, Any]:
+        """Perform comprehensive URL security analysis"""
+        result = {
+            'url': url,
+            'checks': {},
+            'warnings': [],
+            'score_components': {}
+        }
+        
+        try:
+            parsed = urlparse(url)
+            domain = parsed.netloc
+            
+            # 1. Google Safe Browsing
+            if self.google_api_key:
+                result['checks']['safe_browsing'] = self.check_google_safe_browsing(url)
+            
+            # 2. VirusTotal
+            if self.virustotal_api_key:
+                result['checks']['virustotal'] = self.check_virustotal(url)
+            
+            # 3. WHOIS Domain Age
+            result['checks']['whois'] = self.check_domain_age(domain)
+            
+            # 4. SSL Certificate Check
+            if parsed.scheme == 'https':
+                result['checks']['ssl'] = self.check_ssl_certificate(domain)
+            
+            # 5. Redirect Chain Analysis
+            result['checks']['redirects'] = self.follow_redirects(url)
+            
+            # 6. Shortlink Detection
+            result['checks']['shortlink'] = self.is_shortlink(domain)
+            
+            # 7. Domain Spoof Detection
+            result['checks']['spoof'] = self.check_domain_spoofing(domain)
+            
+            # 8. Unicode Homograph Detection
+            result['checks']['homograph'] = self.check_homograph_attack(domain)
+            
+            # 9. Phishing Keyword Detection
+            result['checks']['phishing_keywords'] = self.check_phishing_keywords(url)
+            
+            # 10. Check if domain is in blacklist/whitelist
+            result['checks']['reputation'] = self.check_domain_reputation(domain)
+            
+            # 11. Payment fraud detection
+            result['checks']['payment_fraud'] = self.check_payment_fraud(url)
+            
+            # 12. UPI scheme verification (if applicable)
+            if 'upi' in url.lower():
+                result['checks']['upi_verification'] = self.verify_upi_scheme(url)
+            
+            # Collect warnings
+            result['warnings'] = self.collect_warnings(result['checks'])
+            
+        except Exception as e:
+            result['error'] = str(e)
+        
+        return result
+
+    def check_google_safe_browsing(self, url: str) -> Dict[str, Any]:
+        """Check URL against Google Safe Browsing API"""
+        try:
+            api_url = "https://safebrowsing.googleapis.com/v4/threatMatches:find"
+            
+            payload = {
+                "client": {
+                    "clientId": "secure-qr-system",
+                    "clientVersion": "1.0"
+                },
+                "threatInfo": {
+                    "threatTypes": ["MALWARE", "SOCIAL_ENGINEERING", "UNWANTED_SOFTWARE", "POTENTIALLY_HARMFUL_APPLICATION"],
+                    "platformTypes": ["ANY_PLATFORM"],
+                    "threatEntryTypes": ["URL"],
+                    "threatEntries": [{"url": url}]
+                }
+            }
+            
+            params = {'key': self.google_api_key}
+            response = requests.post(api_url, params=params, json=payload, timeout=10)
+            
+            if response.status_code == 200:
+                data = response.json()
+                return {
+                    'safe': 'matches' not in data or len(data.get('matches', [])) == 0,
+                    'threats': data.get('matches', []),
+                    'timestamp': datetime.utcnow().isoformat()
+                }
+        
+        except Exception as e:
+            pass
+        
+        return {'safe': True, 'error': 'Check failed'}
+
+    def check_virustotal(self, url: str) -> Dict[str, Any]:
+        """Check URL reputation with VirusTotal"""
+        try:
+            if not self.virustotal_api_key:
+                return {'available': False}
+        
+            params = {'apikey': self.virustotal_api_key, 'resource': url}
+            response = requests.get(
+                'https://www.virustotal.com/vtapi/v2/url/report',
+                params=params,
+                headers=self.headers,
+                timeout=15
+            )
+        
+            if response.status_code == 200:
+                data = response.json()
+            
+                # URL not in database - submit it for future scans
+                if data.get('response_code') == 0:
+                    try:
+                        submit_params = {'apikey': self.virustotal_api_key, 'url': url}
+                        requests.post(
+                            'https://www.virustotal.com/vtapi/v2/url/scan',
+                            params=submit_params,
+                            headers=self.headers,
+                            timeout=15
+                        )
+                    except:
+                        pass
+                    return {
+                        'available': False,
+                        'message': 'URL submitted for scanning, not yet in database'
+                    }
+            
+                # URL queued for scanning
+                if data.get('response_code') == -2:
+                    return {
+                        'available': False,
+                        'message': 'URL is queued for scanning'
+                    }
+            
+                # URL found in database
+                if data.get('response_code') == 1:
+                    positives = data.get('positives', 0)
+                    total = data.get('total', 1)
+                    score = positives / total * 100 if total > 0 else 0
+                
+                    return {
+                        'available': True,
+                        'positives': positives,
+                        'total': total,
+                        'score': score,
+                        'scan_date': data.get('scan_date'),
+                        'permalink': data.get('permalink')
+                    }
+        
+            # Handle rate limiting
+            elif response.status_code == 204:
+                return {
+                    'available': False,
+                    'message': 'VirusTotal rate limit exceeded'
+                }
+        
+            # Handle invalid API key
+            elif response.status_code == 403:
+                return {
+                    'available': False,
+                    'message': 'Invalid VirusTotal API key'
+                }
+    
+        except Exception as e:
+            return {'available': False, 'error': str(e)}
+    
+        return {'available': False}
+
+    def check_domain_age(self, domain: str) -> Dict[str, Any]:
+        """Check domain registration age"""
+        try:
+            # Remove port if present
+            domain = domain.split(':')[0]
+            # Remove subdomains - whois works better with root domain
+            extracted = tldextract.extract(domain)
+            root_domain = f"{extracted.domain}.{extracted.suffix}"
+            w = whois.whois(root_domain)
+            creation_date = None
+            if isinstance(w.creation_date, list):
+                creation_date = w.creation_date[0]
+            else:
+                creation_date = w.creation_date
+            # Handle string dates
+            if isinstance(creation_date, str):
+                try:
+                    creation_date = dateutil_parser.parse(creation_date)
+                except Exception:
+                    return {'age_days': None, 'error': 'Could not parse date'}
+            if creation_date:
+                # Fix timezone issue
+                if creation_date.tzinfo is not None:
+                    now = datetime.now(timezone.utc)
+                else:
+                    now = datetime.now()
+                age_days = (now - creation_date).days
+                return {
+                    'age_days': age_days,
+                    'creation_date': creation_date.isoformat(),
+                    'is_new': age_days <= 90,
+                    'registrar': w.registrar,
+                    'expiration_date': str(w.expiration_date)
+                }
+        except Exception as e:
+            return {'age_days': None, 'error': f'WHOIS lookup failed: {str(e)}'}
+        return {'age_days': None, 'error': 'No creation date found'}
+
+    def check_ssl_certificate(self, domain: str) -> Dict[str, Any]:
+        """Validate SSL certificate"""
+        try:
+            context = ssl.create_default_context()
+            with socket.create_connection((domain, 443), timeout=10) as sock:
+                with context.wrap_socket(sock, server_hostname=domain) as ssock:
+                    cert = ssock.getpeercert()
+                    
+                    # Check expiration
+                    not_after = datetime.strptime(cert['notAfter'], '%b %d %H:%M:%S %Y %Z')
+                    days_until_expiry = (not_after - datetime.now()).days
+                    
+                    return {
+                        'valid': True,
+                        'issuer': dict(x[0] for x in cert['issuer']),
+                        'subject': dict(x[0] for x in cert['subject']),
+                        'expiry_days': days_until_expiry,
+                        'not_after': not_after.isoformat(),
+                        'is_valid': days_until_expiry > 0
+                    }
+        
+        except Exception as e:
+            return {'valid': False, 'error': str(e)}
+
+    def follow_redirects(self, url: str, max_redirects: int = 10) -> Dict[str, Any]:
+        """Follow redirect chain and analyze"""
+        redirects = []
+        current_url = url
+        
+        try:
+            for i in range(max_redirects):
+                response = requests.head(current_url,
+                                       allow_redirects=False,
+                                       headers=self.headers,
+                                       timeout=10)
+                
+                redirects.append({
+                    'url': current_url,
+                    'status': response.status_code,
+                    'headers': dict(response.headers)
+                })
+                
+                if response.status_code in [301, 302, 303, 307, 308]:
+                    location = response.headers.get('location')
+                    if location:
+                        current_url = urllib.parse.urljoin(current_url, location)
+                    else:
+                        break
+                else:
+                    break
+                
+                if i == max_redirects - 1:
+                    redirects.append({'warning': 'Too many redirects'})
+        
+        except Exception as e:
+            redirects.append({'error': str(e)})
+        
+        return {
+            'chain': redirects,
+            'count': len(redirects) - 1 if len(redirects) > 1 else 0,
+            'final_url': redirects[-1].get('url', url) if redirects else url
+        }
+
+    def is_shortlink(self, domain: str) -> Dict[str, Any]:
+        """Check if domain is a URL shortener"""
+        domain_lower = domain.lower()
+        is_short = any(short in domain_lower for short in self.short_domains)
+        
+        return {
+            'is_shortlink': is_short,
+            'known_shortener': is_short,
+            'short_domains': self.short_domains
+        }
+
+    def check_domain_spoofing(self, domain: str) -> Dict[str, Any]:
+        """Check for domain spoofing attempts"""
+        warnings = []
+        
+        brands = {
+            'paytm': ['paytm.com', 'paytm.in'],
+            'paypal': ['paypal.com', 'paypal.me'],
+            'google': ['google.com', 'google.co.in'],
+            'amazon': ['amazon.com', 'amazon.in'],
+            'phonepe': ['phonepe.com'],
+            'razorpay': ['razorpay.com'],
+            'bank': ['hdfcbank.com', 'icicibank.com', 'sbi.co.in'],
+            'facebook': ['facebook.com', 'fb.com'],
+            'whatsapp': ['whatsapp.com']
+        }
+        domain_lower = domain.lower()
+        
+        for brand, legitimate_domains in brands.items():
+            if brand in domain_lower:
+                is_legitimate = any(domain_lower.endswith(legit_domain) for legit_domain in legitimate_domains)
+                
+                if not is_legitimate:
+                    if brand == 'paytm':
+                        if 'paytmm' in domain_lower or 'paiytm' in domain_lower:
+                            warnings.append(f"⚠️ TYPOSQUATTING: Fake PayTM domain")
+                        else:
+                            warnings.append(f"⚠️ SUSPICIOUS: Possible fake {brand} site")
+                    elif brand == 'paypal':
+                        if 'paypai' in domain_lower or 'paypa1' in domain_lower:
+                            warnings.append(f"⚠️ TYPOSQUATTING: Fake PayPal domain")
+                        else:
+                            warnings.append(f"⚠️ SUSPICIOUS: Possible fake {brand} site")
+                    else:
+                        warnings.append(f"⚠️ WARNING: Contains {brand} but not on legitimate domain")
+        
+        suspicious_characters = {
+            '0': 'o', '1': 'l', '3': 'e', '4': 'a', '5': 's',
+            '6': 'b', '8': 'b', '9': 'g', '@': 'a'
+        }
+        
+        for fake, real in suspicious_characters.items():
+            if fake in domain_lower:
+                for brand in brands.keys():
+                    if real in brand:
+                        test_domain = domain_lower.replace(fake, real)
+                        if brand in test_domain:
+                            warnings.append(f"⚠️ CHARACTER SUBSTITUTION: Possible {brand} spoof")
+        
+        for brand in brands.keys():
+            if f"-{brand}" in domain_lower or f"{brand}-" in domain_lower:
+                if not any(domain_lower.endswith(legit) for legit in brands.get(brand, [])):
+                    warnings.append(f"⚠️ HYPHEN SPOOFING: Suspicious {brand} domain")
+        
+        return {
+            'warnings': warnings,
+            'has_warnings': len(warnings) > 0,
+            'warning_count': len(warnings),
+            'is_typosquatting': any('TYPOSQUATTING' in w for w in warnings)
+        }
+
+    def check_homograph_attack(self, domain: str) -> Dict[str, Any]:
+        """Check for homograph attacks using Unicode characters"""
+        try:
+            ascii_domain = idna.encode(domain).decode('ascii')
+            
+            if domain != ascii_domain:
+                import unicodedata
+                scripts = set()
+                for char in domain:
+                    try:
+                        scripts.add(unicodedata.name(char).split()[0])
+                    except:
+                        pass
+                
+                if len(scripts) > 1:
+                    return {
+                        'is_homograph': True,
+                        'original': domain,
+                        'ascii': ascii_domain,
+                        'scripts': list(scripts),
+                        'warning': 'Possible homograph attack detected'
+                    }
+        
+        except Exception as e:
+            pass
+        
+        return {'is_homograph': False}
+
+    def check_phishing_keywords(self, url: str) -> Dict[str, Any]:
+        """Check for phishing-related keywords in URL"""
+        url_lower = url.lower()
+        found_keywords = []
+        
+        for keyword in self.phishing_keywords:
+            if keyword in url_lower:
+                found_keywords.append(keyword)
+        
+        return {
+            'found_keywords': found_keywords,
+            'count': len(found_keywords),
+            'is_suspicious': len(found_keywords) >= 3
+        }
+
+    def check_domain_reputation(self, domain: str) -> Dict[str, Any]:
+        """Check domain against blacklists/whitelists"""
+        blacklist = [
+            'malicious-site.com',
+            'phishing-attempt.net'
+        ]
+        
+        whitelist = [
+            'google.com',
+            'github.com',
+            'microsoft.com'
+        ]
+        
+        domain_lower = domain.lower()
+        
+        return {
+            'in_blacklist': domain_lower in [b.lower() for b in blacklist],
+            'in_whitelist': domain_lower in [w.lower() for w in whitelist],
+            'blacklist_match': domain_lower in [b.lower() for b in blacklist],
+            'whitelist_match': domain_lower in [w.lower() for w in whitelist]
+        }
+
+    def check_payment_fraud(self, url: str) -> Dict[str, Any]:
+        """Check for payment fraud indicators"""
+        warnings = []
+        url_lower = url.lower()
+        
+        payment_gateways = {
+            'paypal': ['paypal.com', 'paypal.me'],
+            'stripe': ['stripe.com'],
+            'razorpay': ['razorpay.com'],
+            'phonepe': ['phonepe.com'],
+            'paytm': ['paytm.com', 'secure.paytm.in'],
+            'googlepay': ['gpay.app', 'googlepay.com'],
+            'amazonpay': ['amazonpay.com']
+        }
+        
+        payment_typos = {
+            'paypal': ['paypai', 'paypa1', 'paypai-com', 'paypal-secure',
+                       'paypal-login', 'paypal-verify', 'paypal-update'],
+            'paytm': ['paytmm', 'paiytm', 'paytmm-com', 'paytm-login',
+                      'paytm-verify', 'paytm-update', 'paytm-secure'],
+            'phonepe': ['phonepee', 'fonepe', 'phonepe-login'],
+            'googlepay': ['googlepai', 'gogglepay', 'googlepay-login'],
+            'amazonpay': ['amazonpai', 'amazon-pay-login']
+        }
+        
+        is_payment_related = False
+        detected_gateway = None
+        
+        for gateway in payment_gateways.keys():
+            if gateway in url_lower:
+                is_payment_related = True
+                detected_gateway = gateway
+                
+                legitimate_domains = payment_gateways[gateway]
+                is_legitimate = any(url_lower.endswith(domain) or f".{domain}" in url_lower for domain in legitimate_domains)
+                
+                if not is_legitimate:
+                    if gateway in payment_typos:
+                        for typo in payment_typos[gateway]:
+                            if typo in url_lower:
+                                warnings.append(f"⚠️ TYPOSQUATTING: Fake {gateway} page detected")
+                                break
+                    
+                    if not warnings:
+                        suspicious_patterns = [
+                            f"{gateway}-login", f"{gateway}-verify", f"{gateway}-secure",
+                            f"{gateway}-update", f"{gateway}-account", f"login-{gateway}"
+                        ]
+                        
+                        for pattern in suspicious_patterns:
+                            if pattern in url_lower:
+                                warnings.append(f"⚠️ SUSPICIOUS: Fake {gateway} login page")
+                                break
+                    
+                    if not warnings:
+                        warnings.append(f"⚠️ WARNING: Possible fake {gateway} page")
+        
+        if is_payment_related:
+            if not url.startswith('https://'):
+                warnings.append("🔒 INSECURE: Payment page without HTTPS")
+            
+            parsed = urllib.parse.urlparse(url)
+            query = urllib.parse.parse_qs(parsed.query)
+            
+            suspicious_params = ['login', 'verify', 'secure', 'update', 'password']
+            for param in query.keys():
+                param_lower = param.lower()
+                if any(susp in param_lower for susp in suspicious_params):
+                    warnings.append(f"🔍 SUSPICIOUS: Contains {param} parameter")
+            
+            if re.match(r'https?://\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}', url):
+                warnings.append("⚠️ SUSPICIOUS: Uses IP address instead of domain")
+        
+        brand_domains = ['paytm', 'paypal', 'google', 'amazon', 'phonepe', 'razorpay']
+        parsed = urllib.parse.urlparse(url)
+        domain = parsed.netloc.lower()
+        
+        for brand in brand_domains:
+            if brand in domain and not any(legit in domain for legit in payment_gateways.get(brand, [])):
+                parts = domain.split('.')
+                if len(parts) > 2 and brand in parts[0]:
+                    warnings.append(f"⚠️ SUSPICIOUS: {brand} used in subdomain")
+        
+        return {
+            'warnings': warnings,
+            'has_warnings': len(warnings) > 0,
+            'is_payment_related': is_payment_related,
+            'detected_gateway': detected_gateway,
+            'warning_count': len(warnings),
+            'severity': 'HIGH' if len(warnings) > 2 else ('MEDIUM' if len(warnings) > 0 else 'LOW')
+        }
+
+    def verify_upi_scheme(self, upi_url: str) -> Dict[str, Any]:
+        """Verify UPI scheme validity"""
+        try:
+            parsed = urllib.parse.urlparse(upi_url)
+            query_params = urllib.parse.parse_qs(parsed.query)
+            
+            required = ['pa', 'pn', 'am']
+            missing = [param for param in required if param not in query_params]
+            
+            return {
+                'valid': len(missing) == 0,
+                'missing_params': missing,
+                'has_amount': 'am' in query_params,
+                'amount': query_params.get('am', [None])[0],
+                'payee_vpa': query_params.get('pa', [None])[0],
+                'payee_name': query_params.get('pn', [None])[0]
+            }
+        
+        except Exception as e:
+            return {'valid': False, 'error': str(e)}
+
+    def collect_warnings(self, checks: Dict[str, Any]) -> List[str]:
+        """Collect all warnings from checks"""
+        warnings = []
+        
+        if 'safe_browsing' in checks and not checks['safe_browsing'].get('safe', True):
+            warnings.append("Google Safe Browsing flagged this URL")
+        
+        if 'virustotal' in checks and checks['virustotal'].get('available'):
+            if checks['virustotal'].get('score', 0) > 5:
+                warnings.append(f"VirusTotal detected {checks['virustotal'].get('positives', 0)} threats")
+        
+        if 'whois' in checks and checks['whois'].get('is_new'):
+            warnings.append(f"Domain registered recently ({checks['whois'].get('age_days', 0)} days ago)")
+        
+        if 'ssl' in checks and not checks['ssl'].get('valid'):
+            warnings.append("Invalid SSL certificate")
+        elif 'ssl' in checks and checks['ssl'].get('expiry_days', 0) < 30:
+            warnings.append("SSL certificate expires soon")
+        
+        if 'redirects' in checks and checks['redirects'].get('count', 0) > 3:
+            warnings.append(f"Multiple redirects detected ({checks['redirects'].get('count')})")
+        
+        if 'shortlink' in checks and checks['shortlink'].get('is_shortlink'):
+            warnings.append("URL uses a shortening service")
+        
+        if 'spoof' in checks and checks['spoof'].get('has_warnings'):
+            warnings.extend(checks['spoof'].get('warnings', []))
+        
+        if 'homograph' in checks and checks['homograph'].get('is_homograph'):
+            warnings.append("Possible homograph attack detected")
+        
+        if 'phishing_keywords' in checks and checks['phishing_keywords'].get('is_suspicious'):
+            warnings.append("Contains suspicious keywords")
+        
+        if 'reputation' in checks and checks['reputation'].get('blacklist_match'):
+            warnings.append("Domain found in blacklist")
+        
+        if 'payment_fraud' in checks and checks['payment_fraud'].get('has_warnings'):
+            warnings.extend(checks['payment_fraud'].get('warnings', []))
+        
+        return warnings
+
+===== ./utils/qr_types.py =====
+
+===== ./utils/threat_scorer.py =====
+from typing import Dict, Any
+import datetime
+
+class ThreatScorer:
+    def __init__(self):
+        self.weights = {
+            'safe_browsing': 30,
+            'virustotal': 25,
+            'domain_age': 15,
+            'ssl_valid': 10,
+            'redirects': 5,
+            'shortlink': 5,
+            'spoof': 15,
+            'homograph': 15,
+            'phishing_keywords': 10,
+            'blacklist': 20,
+            'payment_fraud': 25,
+            'upi_fraud': 20,
+            'wifi_security': 15,
+            'crypto_fraud': 20
+        }
+        
+        self.type_descriptions = {
+            'url': 'Website URL',
+            'upi': 'UPI Payment',
+            'whatsapp_pay': 'WhatsApp Payment',
+            'crypto': 'Cryptocurrency',
+            'wifi': 'WiFi Network',
+            'vcard': 'Contact Card',
+            'email': 'Email Address',
+            'phone': 'Phone Number',
+            'sms': 'Text Message',
+            'text': 'Plain Text',
+            'unknown': 'Unknown Type'
+        }
+
+    def calculate_score(self, qr_info: Dict[str, Any], security_report: Dict[str, Any]) -> Dict[str, Any]:
+        """Calculate threat score based ONLY on security findings"""
+        breakdown = {}
+        total_score = 0
+        
+        qr_type = qr_info.get('type', 'unknown')
+        
+        if qr_type == 'url' and security_report.get('checks'):
+            checks = security_report['checks']
+            
+            # Safe Browsing
+            if 'safe_browsing' in checks and not checks['safe_browsing'].get('safe', True):
+                breakdown['safe_browsing'] = {
+                    'score': self.weights['safe_browsing'],
+                    'max': self.weights['safe_browsing'],
+                    'reason': 'Flagged by Google Safe Browsing'
+                }
+                total_score += self.weights['safe_browsing']
+            
+            # VirusTotal
+            if 'virustotal' in checks and checks['virustotal'].get('available'):
+                positives = checks['virustotal'].get('positives', 0)
+                total_engines = checks['virustotal'].get('total', 'multiple')
+
+                if positives >= 10:
+                    vt_contribution = self.weights['virustotal']
+                elif positives >= 5:
+                    vt_contribution = self.weights['virustotal'] * 0.75
+                elif positives >= 2:
+                    vt_contribution = self.weights['virustotal'] * 0.50
+                elif positives >= 1:
+                    vt_contribution = self.weights['virustotal'] * 0.25
+                else:
+                    vt_contribution = 0
+
+                if vt_contribution > 0:
+                    breakdown['virustotal'] = {
+                        'score': vt_contribution,
+                        'max': self.weights['virustotal'],
+                        'reason': f"VirusTotal: {positives}/{total_engines} engines flagged"
+                    }
+                    total_score += vt_contribution
+            
+            # Domain Age
+            if 'whois' in checks and checks['whois'].get('is_new'):
+                breakdown['domain_age'] = {
+                    'score': self.weights['domain_age'],
+                    'max': self.weights['domain_age'],
+                    'reason': f"New domain ({checks['whois'].get('age_days', 0)} days old)"
+                }
+                total_score += self.weights['domain_age']
+            
+            # SSL Certificate
+            if 'ssl' in checks:
+                if not checks['ssl'].get('valid', True):
+                    breakdown['ssl'] = {
+                        'score': self.weights['ssl_valid'],
+                        'max': self.weights['ssl_valid'],
+                        'reason': 'Invalid SSL certificate'
+                    }
+                    total_score += self.weights['ssl_valid']
+                elif checks['ssl'].get('expiry_days', 0) < 7:
+                    breakdown['ssl'] = {
+                        'score': self.weights['ssl_valid'] * 0.5,
+                        'max': self.weights['ssl_valid'],
+                        'reason': 'SSL certificate expiring soon'
+                    }
+                    total_score += self.weights['ssl_valid'] * 0.5
+            
+            # Redirects
+            if 'redirects' in checks and checks['redirects'].get('count', 0) > 2:
+                redirect_score = min(checks['redirects'].get('count', 0) * 2, self.weights['redirects'])
+                breakdown['redirects'] = {
+                    'score': redirect_score,
+                    'max': self.weights['redirects'],
+                    'reason': f"Multiple redirects ({checks['redirects'].get('count')})"
+                }
+                total_score += redirect_score
+            
+            # Shortlink
+            if 'shortlink' in checks and checks['shortlink'].get('is_shortlink'):
+                breakdown['shortlink'] = {
+                    'score': self.weights['shortlink'],
+                    'max': self.weights['shortlink'],
+                    'reason': 'Uses URL shortening service (can hide malicious links)'
+                }
+                total_score += self.weights['shortlink']
+            
+            # Spoof Detection
+            if 'spoof' in checks and checks['spoof'].get('has_warnings'):
+                warning_count = len(checks['spoof'].get('warnings', []))
+                is_typosquatting = checks['spoof'].get('is_typosquatting', False)
+                
+                if is_typosquatting:
+                    spoof_score = self.weights['spoof'] * 0.8
+                else:
+                    spoof_score = min(warning_count * 5, self.weights['spoof'] * 0.6)
+                
+                breakdown['spoof'] = {
+                    'score': spoof_score,
+                    'max': self.weights['spoof'],
+                    'reason': 'Domain spoofing detected',
+                    'warnings': checks['spoof'].get('warnings', [])[:2]
+                }
+                total_score += spoof_score
+            
+            # Homograph Attack
+            if 'homograph' in checks and checks['homograph'].get('is_homograph'):
+                breakdown['homograph'] = {
+                    'score': self.weights['homograph'],
+                    'max': self.weights['homograph'],
+                    'reason': 'Possible homograph attack (Unicode spoofing)'
+                }
+                total_score += self.weights['homograph']
+            
+            # Phishing Keywords
+            if 'phishing_keywords' in checks and checks['phishing_keywords'].get('is_suspicious'):
+                keyword_score = min(checks['phishing_keywords'].get('count', 0) * 3, self.weights['phishing_keywords'])
+                breakdown['phishing_keywords'] = {
+                    'score': keyword_score,
+                    'max': self.weights['phishing_keywords'],
+                    'reason': f"Contains {checks['phishing_keywords'].get('count')} suspicious keywords"
+                }
+                total_score += keyword_score
+            
+            # Blacklist
+            if 'reputation' in checks and checks['reputation'].get('blacklist_match'):
+                breakdown['blacklist'] = {
+                    'score': self.weights['blacklist'],
+                    'max': self.weights['blacklist'],
+                    'reason': 'Domain found in blacklist'
+                }
+                total_score += self.weights['blacklist']
+            
+            # Payment Fraud
+            if 'payment_fraud' in checks and checks['payment_fraud'].get('has_warnings'):
+                fraud_check = checks['payment_fraud']
+                warning_count = fraud_check.get('warning_count', 0)
+                severity = fraud_check.get('severity', 'LOW')
+                
+                if severity == 'HIGH':
+                    fraud_score = self.weights['payment_fraud'] * 0.9
+                elif severity == 'MEDIUM':
+                    fraud_score = self.weights['payment_fraud'] * 0.6
+                else:
+                    fraud_score = min(warning_count * 5, self.weights['payment_fraud'] * 0.4)
+                
+                warnings = fraud_check.get('warnings', [])
+                for warning in warnings:
+                    if 'TYPOSQUATTING' in warning:
+                        fraud_score += 15
+                        break
+                
+                breakdown['payment_fraud'] = {
+                    'score': min(fraud_score, self.weights['payment_fraud']),
+                    'max': self.weights['payment_fraud'],
+                    'reason': f"Payment fraud detected: {fraud_check.get('detected_gateway', 'unknown')}",
+                    'warnings': warnings[:2]
+                }
+                total_score += min(fraud_score, self.weights['payment_fraud'])
+        
+        # UPI scoring
+        elif qr_type == 'upi' and security_report.get('checks'):
+            checks = security_report['checks']
+            
+            if 'upi_verification' in checks:
+                upi_verification = checks['upi_verification']
+                if not upi_verification.get('valid', True):
+                    breakdown['upi_verification'] = {
+                        'score': 10,
+                        'max': 10,
+                        'reason': 'Invalid UPI scheme',
+                        'details': upi_verification.get('missing_params', [])
+                    }
+                    total_score += 10
+            
+            if 'upi_fraud_check' in checks and checks['upi_fraud_check'].get('has_warnings'):
+                upi_warnings = checks['upi_fraud_check'].get('warnings', [])
+                upi_score = min(len(upi_warnings) * 5, self.weights['upi_fraud'])
+                breakdown['upi_fraud'] = {
+                    'score': upi_score,
+                    'max': self.weights['upi_fraud'],
+                    'reason': 'UPI fraud indicators detected',
+                    'warnings': upi_warnings[:3]
+                }
+                total_score += upi_score
+        
+        # WiFi scoring
+        elif qr_type == 'wifi' and qr_info.get('wifi_info'):
+            wifi_analysis = security_report.get('wifi_analysis', {})
+        
+            if wifi_analysis.get('warnings'):
+                security_score = wifi_analysis.get('security_score', 100)
+                threat_points = (100 - security_score) * 0.15
+            
+                breakdown['wifi_security'] = {
+                    'score': min(threat_points, self.weights['wifi_security']),
+                    'max': self.weights['wifi_security'],
+                    'reason': f"WiFi {wifi_analysis.get('risk_level', 'UNKNOWN')} risk",
+                    'warnings': wifi_analysis.get('warnings', [])[:3]
+                }
+                total_score += min(threat_points, self.weights['wifi_security'])
+        
+        # Crypto scoring
+        elif qr_type == 'crypto' and security_report.get('crypto_analysis'):
+            crypto_analysis = security_report['crypto_analysis']
+        
+            if crypto_analysis.get('warnings'):
+                fraud_score = crypto_analysis.get('fraud_score', 0)
+                risk_level = crypto_analysis.get('risk_level', 'LOW')
+            
+                if risk_level == 'CRITICAL':
+                    crypto_threat = self.weights['crypto_fraud']
+                elif risk_level == 'HIGH':
+                    crypto_threat = self.weights['crypto_fraud'] * 0.75
+                elif risk_level == 'MEDIUM':
+                    crypto_threat = self.weights['crypto_fraud'] * 0.5
+                else:
+                    crypto_threat = min(self.weights['crypto_fraud'], fraud_score / 5)
+            
+                breakdown['crypto_fraud'] = {
+                    'score': crypto_threat,
+                    'max': self.weights['crypto_fraud'],
+                    'reason': f"{crypto_analysis.get('crypto_type', 'Crypto')} {risk_level} risk",
+                    'warnings': crypto_analysis.get('warnings', [])[:3],
+                    'confidence': f"{crypto_analysis.get('confidence', 0)}%"
+                }
+                total_score += crypto_threat
+        
+        # Cap total score at 100
+        total_score = min(total_score, 100)
+        
+        if total_score >= 20:
+            threat_level = "MALICIOUS"
+            color = "danger"
+        elif total_score >= 10:
+            threat_level = "SUSPICIOUS"
+            color = "warning"
+        elif total_score >= 5:
+            threat_level = "LOW RISK"
+            color = "info"
+        else:
+            threat_level = "SAFE"
+            color = "success"
+        
+        return {
+            'total_score': round(total_score, 1),
+            'threat_level': threat_level,
+            'color': color,
+            'breakdown': breakdown,
+            'qr_type': qr_type,
+            'type_description': self.type_descriptions.get(qr_type, 'Unknown'),
+            'max_possible': 100,
+            'timestamp': datetime.datetime.utcnow().isoformat()
+        }
+
+===== ./utils/advanced_analyzer.py =====
+"""
+Advanced analyzers for WiFi and Cryptocurrency QR codes
+"""
+import re
+import urllib.parse
+from datetime import datetime
+from typing import Dict, Any, List
+import hashlib
+
+class WiFiAnalyzer:
+    """Analyze WiFi QR codes for security"""
+    
+    def __init__(self):
+        # Common weak passwords
+        self.common_passwords = [
+            'password', 'password123', '12345678', 'admin',
+            'welcome', 'qwerty', 'letmein', 'monkey', 'dragon',
+            'baseball', 'football', 'mustang', 'master', 'hello',
+            'freedom', 'whatever', 'qazwsx', 'trustno1', 'sunshine'
+        ]
+        
+        # Sequential patterns
+        self.sequential_patterns = [
+            '1234', '2345', '3456', '4567', '5678', '6789', '7890',
+            'abcd', 'bcde', 'cdef', 'defg', 'efgh', 'fghi', 'ghij',
+            'qwer', 'wert', 'erty', 'rtyu', 'tyui', 'yuio', 'uiop'
+        ]
+    
+    def analyze_wifi(self, wifi_info: Dict[str, Any]) -> Dict[str, Any]:
+        """Analyze WiFi security"""
+        password = wifi_info.get('password', '')
+        encryption = wifi_info.get('encryption', '').upper()
+        ssid = wifi_info.get('ssid', '')
+        
+        warnings = []
+        security_score = 100  # Start with perfect score
+        risk_factors = []
+        
+        # 1. ENCRYPTION TYPE ANALYSIS
+        if encryption in ['WEP', 'WPA']:
+            warnings.append(f"⚠️ WEAK ENCRYPTION: {encryption} is easily crackable")
+            security_score -= 40
+            risk_factors.append(f"weak_encryption_{encryption}")
+        elif encryption in ['NOPASS', '']:
+            warnings.append("🔓 NO ENCRYPTION: Open network (anyone can listen)")
+            security_score -= 60
+            risk_factors.append("no_encryption")
+        elif encryption == 'WPA2':
+            if 'TKIP' in encryption:
+                warnings.append("⚠️ WPA2-TKIP is vulnerable to attacks")
+                security_score -= 20
+                risk_factors.append("wpa2_tkip_vulnerable")
+        elif encryption == 'WPA3':
+            security_score += 10  # Bonus for WPA3
+            risk_factors.append("wpa3_secure")
+        
+        # 2. PASSWORD STRENGTH ANALYSIS
+        if password:
+            # Length check
+            if len(password) < 8:
+                warnings.append("🔓 PASSWORD TOO SHORT: Less than 8 characters")
+                security_score -= 25
+                risk_factors.append("password_too_short")
+            
+            # Common password check
+            if password.lower() in self.common_passwords:
+                warnings.append("🔓 COMMON PASSWORD: Easily guessable")
+                security_score -= 30
+                risk_factors.append("common_password")
+            
+            # Pattern checks
+            if password.isdigit():
+                warnings.append("🔓 ONLY NUMBERS: No letters or special characters")
+                security_score -= 15
+                risk_factors.append("only_numbers")
+            
+            if password.isalpha():
+                warnings.append("🔓 ONLY LETTERS: No numbers or special characters")
+                security_score -= 15
+                risk_factors.append("only_letters")
+            
+            # Sequential pattern check
+            password_lower = password.lower()
+            for pattern in self.sequential_patterns:
+                if pattern in password_lower:
+                    warnings.append(f"🔓 SEQUENTIAL PATTERN: '{pattern}' detected")
+                    security_score -= 20
+                    risk_factors.append("sequential_pattern")
+                    break
+            
+            # Complexity check
+            has_upper = any(c.isupper() for c in password)
+            has_lower = any(c.islower() for c in password)
+            has_digit = any(c.isdigit() for c in password)
+            has_special = any(not c.isalnum() for c in password)
+            
+            complexity_score = sum([has_upper, has_lower, has_digit, has_special])
+            
+            if complexity_score < 3:
+                warnings.append(f"🔓 LOW COMPLEXITY: Score {complexity_score}/4")
+                security_score -= 20
+                risk_factors.append(f"low_complexity_{complexity_score}")
+            
+            # Dictionary word check
+            common_words = ['home', 'house', 'family', 'network', 'wifi',
+                           'internet', 'secure', 'private', 'access', 'wireless']
+            for word in common_words:
+                if word in password_lower:
+                    warnings.append(f"🔓 CONTAINS COMMON WORD: '{word}'")
+                    security_score -= 10
+                    risk_factors.append(f"contains_word_{word}")
+                    break
+        else:
+            if encryption not in ['NOPASS', '']:
+                warnings.append("❓ NO PASSWORD: But encryption specified")
+                risk_factors.append("no_password_but_encryption")
+        
+        # 3. SSID ANALYSIS
+        if ssid:
+            suspicious_ssids = ['FreeWiFi', 'Free_WiFi', 'Public_WiFi', 
+                               'Airport_WiFi', 'Hotel_WiFi', 'Guest']
+            for suspicious in suspicious_ssids:
+                if suspicious.lower() in ssid.lower():
+                    warnings.append(f"⚠️ SUSPICIOUS SSID: '{suspicious}' in network name")
+                    security_score -= 10
+                    risk_factors.append(f"suspicious_ssid_{suspicious}")
+                    break
+        
+        # 4. FINAL RISK ASSESSMENT
+        risk_level = "LOW"
+        if security_score <= 30:
+            risk_level = "CRITICAL"
+        elif security_score <= 50:
+            risk_level = "HIGH"
+        elif security_score <= 70:
+            risk_level = "MEDIUM"
+        
+        recommendation = "CONNECT"
+        if risk_level in ["CRITICAL", "HIGH"]:
+            recommendation = "AVOID"
+        elif risk_level == "MEDIUM":
+            recommendation = "CONNECT WITH CAUTION"
+        
+        return {
+            'warnings': warnings,
+            'security_score': max(0, security_score),  # 0-100 scale
+            'risk_level': risk_level,
+            'risk_factors': risk_factors,
+            'recommendation': recommendation,
+            'encryption_strength': self.get_encryption_strength(encryption),
+            'password_strength': self.get_password_strength(password),
+            'analysis_time': datetime.now().isoformat()
+        }
+    
+    def get_encryption_strength(self, encryption: str) -> str:
+        """Get encryption strength rating"""
+        strength_map = {
+            'WPA3': 'VERY STRONG',
+            'WPA2': 'STRONG',
+            'WPA': 'WEAK',
+            'WEP': 'VERY WEAK',
+            'NOPASS': 'NONE',
+            '': 'UNKNOWN'
+        }
+        return strength_map.get(encryption.upper(), 'UNKNOWN')
+    
+    def get_password_strength(self, password: str) -> str:
+        """Get password strength rating"""
+        if not password:
+            return "NO PASSWORD"
+        
+        length = len(password)
+        has_upper = any(c.isupper() for c in password)
+        has_lower = any(c.islower() for c in password)
+        has_digit = any(c.isdigit() for c in password)
+        has_special = any(not c.isalnum() for c in password)
+        
+        complexity = sum([has_upper, has_lower, has_digit, has_special])
+        
+        if length >= 12 and complexity == 4:
+            return "VERY STRONG"
+        elif length >= 8 and complexity >= 3:
+            return "STRONG"
+        elif length >= 8 and complexity >= 2:
+            return "MEDIUM"
+        else:
+            return "WEAK"
+
+
+class CryptoAnalyzer:
+    """Analyze Cryptocurrency QR codes for security"""
+    
+    def __init__(self):
+        # Known scam address patterns (simplified - in reality would use API/database)
+        self.scam_patterns = {
+            'bitcoin': {
+                'patterns': [
+                    r'^1Fake',  # Pattern for fake addresses
+                    r'^3Fake',
+                    r'^bc1fake'
+                ],
+                'testnet_prefixes': ['tb1', 'bcrt', '2', 'n', 'm']
+            },
+            'ethereum': {
+                'patterns': [
+                    r'^0x0000',
+                    r'^0xdead',
+                    r'^0xfff'
+                ],
+                'testnet_prefixes': []
+            }
+        }
+        
+        # Common scam messages/keywords
+        self.scam_keywords = [
+            'urgent', 'immediate', 'investment', 'double',
+            'free', 'giveaway', 'airdrop', 'reward',
+            'wallet', 'recovery', 'support', 'verify',
+            'prize', 'lottery', 'winner', 'bonus'
+        ]
+    
+    def analyze_crypto(self, content: str, crypto_type: str, address: str) -> Dict[str, Any]:
+        """Analyze cryptocurrency QR code"""
+        warnings = []
+        fraud_score = 0
+        analysis_details = {
+            'valid_format': True,
+            'parameters': {},
+            'risk_factors': []
+        }
+        
+        # 1. ADDRESS VALIDATION
+        if not self.validate_address(address, crypto_type):
+            warnings.append("❌ INVALID ADDRESS FORMAT")
+            fraud_score += 30
+            analysis_details['valid_format'] = False
+            analysis_details['risk_factors'].append("invalid_format")
+        
+        # 2. KNOWN SCAM PATTERNS
+        scam_patterns = self.scam_patterns.get(crypto_type, {}).get('patterns', [])
+        for pattern in scam_patterns:
+            if re.match(pattern, address, re.IGNORECASE):
+                warnings.append(f"⚠️ KNOWN SCAM PATTERN: Matches {pattern}")
+                fraud_score += 25
+                analysis_details['risk_factors'].append("known_scam_pattern")
+                break
+        
+        # 3. TESTNET DETECTION
+        testnet_prefixes = self.scam_patterns.get(crypto_type, {}).get('testnet_prefixes', [])
+        for prefix in testnet_prefixes:
+            if address.lower().startswith(prefix):
+                warnings.append(f"⚠️ TESTNET ADDRESS: {address[:10]}... (NOT FOR REAL TRANSACTIONS)")
+                fraud_score += 40  # Very high - sending to testnet loses funds!
+                analysis_details['risk_factors'].append("testnet_address")
+                break
+        
+        # 4. PARAMETER ANALYSIS
+        try:
+            parsed = urllib.parse.urlparse(content)
+            query_params = urllib.parse.parse_qs(parsed.query)
+            analysis_details['parameters'] = query_params
+            
+            # Amount parameter
+            if 'amount' in query_params:
+                try:
+                    amount = float(query_params['amount'][0])
+                    if amount <= 0:
+                        warnings.append("⚠️ ZERO/NEGATIVE AMOUNT")
+                        fraud_score += 15
+                        analysis_details['risk_factors'].append("zero_amount")
+                    elif amount > 10:  # Large crypto amount
+                        warnings.append(f"⚠️ LARGE AMOUNT: {amount} {crypto_type.upper()}")
+                        fraud_score += 10
+                        analysis_details['risk_factors'].append("large_amount")
+                except:
+                    warnings.append("⚠️ INVALID AMOUNT FORMAT")
+                    fraud_score += 10
+            
+            # Message/label analysis
+            message_fields = ['message', 'label', 'memo', 'note']
+            for field in message_fields:
+                if field in query_params:
+                    message = query_params[field][0].lower()
+                    
+                    # Check for scam keywords
+                    found_keywords = [kw for kw in self.scam_keywords if kw in message]
+                    if found_keywords:
+                        warnings.append(f"⚠️ SUSPICIOUS MESSAGE: Contains {', '.join(found_keywords[:3])}")
+                        fraud_score += len(found_keywords) * 5
+                        analysis_details['risk_factors'].append(f"suspicious_message_{field}")
+                    
+                    # Check for urgency
+                    if 'urgent' in message or 'immediate' in message:
+                        warnings.append("🚨 URGENT LANGUAGE: Common in scams")
+                        fraud_score += 20
+                        analysis_details['risk_factors'].append("urgent_language")
+                    
+                    break  # Only check first message field
+        
+        except Exception as e:
+            warnings.append(f"⚠️ PARAMETER PARSE ERROR: {str(e)}")
+            analysis_details['risk_factors'].append("parse_error")
+        
+        # 5. ADDRESS REPUTATION (Simulated - would use API in production)
+        address_hash = hashlib.sha256(address.encode()).hexdigest()[:8]
+        
+        # Simulate reputation based on hash (for demo)
+        if int(address_hash, 16) % 100 < 5:  # 5% chance of "known scam"
+            warnings.append("⚠️ ADDRESS IN SCAM DATABASE (Simulated)")
+            fraud_score += 35
+            analysis_details['risk_factors'].append("in_scam_database")
+        
+        # 6. FORMAT CHECKS
+        if len(address) < 25:
+            warnings.append("⚠️ UNUSUALLY SHORT ADDRESS")
+            fraud_score += 10
+            analysis_details['risk_factors'].append("short_address")
+        
+        if ' ' in address or '\t' in address:
+            warnings.append("⚠️ ADDRESS CONTAINS WHITESPACE")
+            fraud_score += 15
+            analysis_details['risk_factors'].append("whitespace_in_address")
+        
+        # 7. FINAL RISK ASSESSMENT
+        risk_level = "LOW"
+        if fraud_score >= 50:
+            risk_level = "CRITICAL"
+        elif fraud_score >= 30:
+            risk_level = "HIGH"
+        elif fraud_score >= 15:
+            risk_level = "MEDIUM"
+        
+        confidence = min(100, fraud_score * 1.5)
+        
+        return {
+            'crypto_type': crypto_type,
+            'address': address,
+            'short_address': f"{address[:8]}...{address[-6:]}",
+            'warnings': warnings,
+            'fraud_score': fraud_score,
+            'risk_level': risk_level,
+            'confidence': confidence,
+            'analysis_details': analysis_details,
+            'recommendation': 'BLOCK' if risk_level == 'CRITICAL' else 
+                            ('WARN' if risk_level in ['HIGH', 'MEDIUM'] else 'ALLOW'),
+            'timestamp': datetime.now().isoformat()
+        }
+    
+    def validate_address(self, address: str, crypto_type: str) -> bool:
+        """Basic cryptocurrency address validation"""
+        if not address:
+            return False
+        
+        if crypto_type == 'bitcoin':
+            return bool(re.match(r'^[13][a-km-zA-HJ-NP-Z1-9]{25,34}$', address) or 
+                       address.startswith('bc1'))
+        elif crypto_type == 'ethereum':
+            return bool(re.match(r'^0x[a-fA-F0-9]{40}$', address))
+        elif crypto_type == 'litecoin':
+            return bool(re.match(r'^[LM3][a-km-zA-HJ-NP-Z1-9]{26,33}$', address))
+        elif crypto_type == 'ripple':
+            return bool(re.match(r'^r[0-9a-zA-Z]{24,34}$', address))
+        elif crypto_type == 'doge':
+            return bool(re.match(r'^D[1-9A-HJ-NP-Za-km-z]{33}$', address))
+        
+        return True  # Unknown crypto type
+    
+    def get_crypto_info(self, crypto_type: str) -> Dict[str, Any]:
+        """Get information about cryptocurrency"""
+        info = {
+            'bitcoin': {
+                'name': 'Bitcoin',
+                'symbol': 'BTC',
+                'security_note': 'Irreversible transactions',
+                'scam_types': ['Fake exchanges', 'Giveaway scams', 'Investment fraud']
+            },
+            'ethereum': {
+                'name': 'Ethereum',
+                'symbol': 'ETH',
+                'security_note': 'Smart contract risks',
+                'scam_types': ['Fake token sales', 'Wallet drainers', 'NFT scams']
+            },
+            'litecoin': {
+                'name': 'Litecoin',
+                'symbol': 'LTC',
+                'security_note': 'Faster transactions than Bitcoin',
+                'scam_types': ['Same as Bitcoin scams']
+            },
+            'ripple': {
+                'name': 'Ripple',
+                'symbol': 'XRP',
+                'security_note': 'Centralized validation',
+                'scam_types': ['Fake airdrops', 'Exchange impersonation']
+            },
+            'doge': {
+                'name': 'Dogecoin',
+                'symbol': 'DOGE',
+                'security_note': 'Meme coin, high volatility',
+                'scam_types': ['Pump and dump', 'Social media scams']
+            }
+        }
+        return info.get(crypto_type, {'name': crypto_type, 'symbol': '???'})
+
+===== ./utils/qr_scanner.py =====
+import cv2
+import qrcode
+from pyzbar.pyzbar import decode
+from PIL import Image
+import re
+import urllib.parse
+from typing import Dict, Any
+
+class QRScanner:
+    def __init__(self):
+        self.url_pattern = re.compile(
+            r'^(https?://)?'  # http:// or https://
+            r'(([A-Z0-9-]+\.)+[A-Z]{2,6})'  # domain
+            r'(:\d+)?'  # port
+            r'(/.*)?$', re.IGNORECASE)
+        
+        self.upi_pattern = re.compile(r'^upi://pay\?pa=[^&]+&pn=[^&]+&am=\d+&cu=INR$', re.IGNORECASE)
+        self.email_pattern = re.compile(r'^mailto:[^@]+@[^@]+\.[^@]+$', re.IGNORECASE)
+        self.phone_pattern = re.compile(r'^tel:\+\d{10,15}$')
+        self.sms_pattern = re.compile(r'^smsto:\d+:.+$')
+        self.wifi_pattern = re.compile(r'^WIFI:.*$', re.IGNORECASE)
+        self.vcard_pattern = re.compile(r'^BEGIN:VCARD.*END:VCARD$', re.DOTALL)
+        self.bitcoin_pattern = re.compile(r'^bitcoin:[13][a-km-zA-HJ-NP-Z1-9]{25,34}$')
+        
+        self.wifi_pattern = re.compile(
+            r'^WIFI:'                    # Start with WIFI:
+            r'S:(?P<ssid>[^;]*);'        # SSID
+            r'T:(?P<type>[^;]*);'        # Encryption type
+            r'P:(?P<password>[^;]*);'    # Password
+            r'(?:H:(?P<hidden>[^;]*);)?' # Optional hidden flag
+            r';?$',                      # Optional trailing semicolon
+            re.IGNORECASE
+        )
+        
+        self.crypto_patterns = {
+            'bitcoin': re.compile(r'^bitcoin:[13][a-km-zA-HJ-NP-Z1-9]{25,34}(?:\?.*)?$'),
+            'ethereum': re.compile(r'^(?:ethereum:|ETH:)?(0x[a-fA-F0-9]{40})(?:\?.*)?$'),
+            'litecoin': re.compile(r'^litecoin:[LM3][a-km-zA-HJ-NP-Z1-9]{26,33}(?:\?.*)?$'),
+            'ripple': re.compile(r'^(?:ripple:|XRP:)?(r[0-9a-zA-Z]{24,34})(?:\?.*)?$'),
+            'doge': re.compile(r'^dogecoin:[D9][1-9A-HJ-NP-Za-km-z]{33}(?:\?.*)?$')
+        }
+    
+    def decode_from_image(self, image_path: str) -> str:
+        """Decode QR code from image file"""
+        try:
+            image = cv2.imread(image_path)
+            decoded_objects = decode(image)
+            
+            if decoded_objects:
+                return decoded_objects[0].data.decode('utf-8')
+            
+            # Try with PIL if OpenCV fails
+            pil_image = Image.open(image_path)
+            decoded_objects = decode(pil_image)
+            
+            if decoded_objects:
+                return decoded_objects[0].data.decode('utf-8')
+            
+            return None
+        except Exception as e:
+            print(f"Error decoding QR: {e}")
+            return None
+    
+    def decode_from_webcam(self) -> str:
+        """Decode QR code from webcam stream"""
+        cap = cv2.VideoCapture(0)
+        
+        while True:
+            ret, frame = cap.read()
+            if not ret:
+                break
+            
+            decoded_objects = decode(frame)
+            for obj in decoded_objects:
+                cap.release()
+                cv2.destroyAllWindows()
+                return obj.data.decode('utf-8')
+            
+            cv2.imshow('QR Scanner', frame)
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                break
+        
+        cap.release()
+        cv2.destroyAllWindows()
+        return None
+    
+    def parse_qr_content(self, content: str) -> Dict[str, Any]:
+        """Parse QR content and identify type"""
+        if not content:
+            return {'type': 'unknown', 'content': content}
+        
+        content = content.strip()
+        print(f"QR_SCANNER DEBUG: Content = '{content}'")
+        
+        wifi_match = self.wifi_pattern.match(content)
+        if wifi_match:
+            wifi_info = wifi_match.groupdict()
+            return {
+                'type': 'wifi',
+                'content': content,
+                'wifi_info': {
+                    'ssid': wifi_info.get('ssid', ''),
+                    'encryption': wifi_info.get('type', ''),
+                    'password': wifi_info.get('password', ''),
+                    'hidden': wifi_info.get('hidden', 'false').lower() == 'true'
+                }
+            }
+        
+        # Check for URL
+        
+        url_match = self.url_pattern.match(content)
+        print(f"QR_SCANNER DEBUG: URL pattern match = {url_match}")
+        print(f"QR_SCANNER DEBUG: Starts with http/https = {content.startswith(('http://', 'https://'))}")
+        
+        if url_match or content.startswith(('http://', 'https://')):
+            url = content if '://' in content else f'http://{content}'
+            print(f"QR_SCANNER DEBUG: Returning URL = '{url}'")
+            return {
+                'type': 'url',
+                'url': url,
+                'content': content
+            }
+        
+        # Check for UPI
+        if 'upi://' in content.lower() or self.upi_pattern.match(content):
+            return {'type': 'upi', 'content': content}
+            
+        for crypto_type, pattern in self.crypto_patterns.items():
+            if pattern.match(content):
+                return {
+                    'type': 'crypto',
+                    'crypto_type': crypto_type,
+                    'content': content,
+                    'address': self.extract_crypto_address(content, crypto_type)
+                }
+        
+        # Check for WhatsApp Pay
+        if 'whatsapp://pay' in content.lower():
+            return {'type': 'whatsapp_pay', 'content': content}
+        
+        # Check for Bitcoin/Crypto
+        if self.bitcoin_pattern.match(content) or content.startswith(('ethereum:', 'litecoin:')):
+            return {'type': 'crypto', 'content': content}
+        
+        # Check for WiFi
+        if self.wifi_pattern.match(content):
+            return {'type': 'wifi', 'content': content}
+        
+        # Check for vCard
+        if self.vcard_pattern.match(content):
+            return {'type': 'vcard', 'content': content}
+        
+        # Check for Email
+        if self.email_pattern.match(content):
+            return {'type': 'email', 'content': content}
+        
+        # Check for Phone
+        if self.phone_pattern.match(content):
+            return {'type': 'phone', 'content': content}
+        
+        # Check for SMS
+        if self.sms_pattern.match(content):
+            return {'type': 'sms', 'content': content}
+        
+        # Check for Text
+        if len(content) < 1000:  # Arbitrary limit
+            return {'type': 'text', 'content': content}
+        
+        return {'type': 'unknown', 'content': content}
+        
+    def extract_crypto_address(self, content: str, crypto_type: str) -> str:
+        """Extract cryptocurrency address from QR content"""
+        try:
+            if crypto_type == 'ethereum':
+                match = re.search(r'(0x[a-fA-F0-9]{40})', content)
+                return match.group(1) if match else content.split(':')[-1]
+            elif crypto_type == 'ripple':
+                match = re.search(r'(r[0-9a-zA-Z]{24,34})', content)
+                return match.group(1) if match else content.split(':')[-1]
+            else:
+                # For bitcoin, litecoin, dogecoin
+                return content.split(':')[1].split('?')[0]
+        except:
+            return content
+
+===== ./.env =====
+DATABASE_URL=sqlite:///qr_scans.db
+DOMAIN_AGE_THRESHOLD=90
+FLASK_APP=app.py
+FLASK_ENV=development
+GOOGLE_SAFE_BROWSING_API_KEY=AIzaSyAw8agTAxOs2ns-5UtgYKVENjk7-ybk0ss
+SECRET_KEY=your-super-secret-key-change-in-production
+THREAT_SCORE_MALICIOUS=70
+THREAT_SCORE_SUSPICIOUS=40
+VIRUSTOTAL_API_KEY=3121e02d1885344f88c2a8fbe174f8f2efeefb92b5dbb93efc5ecaf108561d90
+PORT=5000
+
+===== ./app.py =====
+from dotenv import load_dotenv
+load_dotenv()
+
+import os
+import hashlib
+from datetime import datetime
+from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, session
+from flask_sqlalchemy import SQLAlchemy
+from werkzeug.utils import secure_filename
+import json
+import urllib.parse
+from config import Config
+from utils.qr_scanner import QRScanner
+from utils.security_analyzer import SecurityAnalyzer
+from utils.threat_scorer import ThreatScorer
+from models.database import db, ScanResult
+from flask import request
+
+app = Flask(__name__)
+app.config.from_object(Config)
+
+# Initialize extensions
+db.init_app(app)
+
+# Create upload folder
+os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+
+# Initialize scanners
+qr_scanner = QRScanner()
+security_analyzer = SecurityAnalyzer(
+    google_api_key=app.config['GOOGLE_SAFE_BROWSING_API_KEY'],
+    virustotal_api_key=app.config['VIRUSTOTAL_API_KEY']
+)
+threat_scorer = ThreatScorer()
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']
+
+def parse_upi_string(upi_string):
+    """Parse UPI string and extract payment details"""
+    try:
+        parsed = urllib.parse.urlparse(upi_string)
+        query_params = urllib.parse.parse_qs(parsed.query)
+        
+        return {
+            'pa': query_params.get('pa', [''])[0],  # Payee UPI ID
+            'pn': query_params.get('pn', [''])[0],  # Payee Name
+            'am': query_params.get('am', [''])[0] if query_params.get('am') else None,  # Amount
+            'cu': query_params.get('cu', ['INR'])[0],  # Currency
+            'tn': query_params.get('tn', [''])[0] if query_params.get('tn') else None  # Transaction Note
+        }
+    except:
+        return {'pa': upi_string, 'pn': 'Unknown', 'am': None, 'cu': 'INR', 'tn': None}
+
+# Add this to your Jinja2 template context
+@app.context_processor
+def utility_processor():
+    def parse_upi_string_func(upi_string):
+        return parse_upi_string(upi_string)
+    return dict(parse_upi_string=parse_upi_string_func)
+
+@app.route('/')
+def index():
+    return render_template('index.html')
+
+@app.route('/scan', methods=['GET', 'POST'])
+def scan_qr():
+    if request.method == 'POST':
+        scan_method = request.form.get('scan_method')
+        qr_data = None
+        filename = None
+        
+        if scan_method == 'upload' and 'file' in request.files:
+            file = request.files['file']
+            if file.filename == '':
+                flash('No selected file')
+                return redirect(request.url)
+            
+            if file and allowed_file(file.filename):
+                filename = secure_filename(file.filename)
+                filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                file.save(filepath)
+                
+                # Decode QR from image
+                qr_data = qr_scanner.decode_from_image(filepath)
+        
+        elif scan_method == 'manual' and 'qr_content' in request.form:
+            qr_data = request.form.get('qr_content')
+        
+        elif scan_method == 'webcam' and 'webcam_data' in request.form:
+            qr_data = request.form['webcam_data']
+        
+        if qr_data:
+            # Create scan hash for tracking
+            scan_hash = hashlib.sha256(f"{qr_data}{datetime.utcnow().timestamp()}".encode()).hexdigest()[:16]
+            session['current_scan'] = scan_hash
+            
+            # Start analysis in background (for production, use Celery)
+            result = perform_security_analysis(qr_data, scan_hash)
+            
+            print(f"DEBUG result checks keys: {list(result['security_report'].get('checks', {}).keys())}")
+            return render_template('result.html', result=result)
+        
+        flash('Failed to decode QR code')
+        return redirect(url_for('scan_qr'))
+    
+    return render_template('scan.html')
+
+@app.route('/api/scan', methods=['POST'])
+def api_scan():
+    """API endpoint for mobile apps"""
+    data = request.json
+    qr_content = data.get('qr_content')
+    
+    if not qr_content:
+        return jsonify({'error': 'No QR content provided'}), 400
+    
+    scan_hash = hashlib.sha256(f"{qr_content}{datetime.utcnow().timestamp()}".encode()).hexdigest()[:16]
+    result = perform_security_analysis(qr_content, scan_hash)
+    
+    return jsonify(result)
+
+def perform_security_analysis(qr_content, scan_hash):
+    """Perform complete security analysis on QR content"""
+    
+    # Step 1: Parse QR type
+    qr_info = qr_scanner.parse_qr_content(qr_content)
+    
+    print(f"DEBUG: QR content = {qr_content}")
+    print(f"DEBUG: QR info = {qr_info}")
+    
+    # Step 2: Perform security analysis based on type
+    security_report = {}
+    
+    if qr_info['type'] == 'url' and qr_info.get('url'):
+    
+        print(f"DEBUG: Calling analyze_url with: {qr_info['url']}")
+    
+        security_report = security_analyzer.analyze_url(qr_info['url'])
+    
+    elif qr_info['type'] == 'upi':
+        # Add UPI-specific checks
+        security_report = {
+            'type': 'upi',
+            'checks': {
+                'upi_verification': verify_upi_scheme(qr_content),
+                'upi_fraud_check': check_upi_fraud(qr_content)
+            },
+            'warnings': []
+        }
+    
+    elif qr_info['type'] == 'wifi' and qr_info.get('wifi_info'):
+        # WiFi analysis
+        wifi_analysis = security_analyzer.wifi_analyzer.analyze_wifi(qr_info['wifi_info'])
+        security_report = {
+            'type': 'wifi',
+            'wifi_analysis': wifi_analysis,
+            'warnings': wifi_analysis.get('warnings', [])
+        }
+    
+    elif qr_info['type'] == 'crypto' and qr_info.get('crypto_type'):
+        # Cryptocurrency analysis
+        crypto_analysis = security_analyzer.crypto_analyzer.analyze_crypto(
+            qr_content,
+            qr_info.get('crypto_type', 'unknown'),
+            qr_info.get('address', '')
+        )
+        security_report = {
+            'type': 'crypto',
+            'crypto_analysis': crypto_analysis,
+            'warnings': crypto_analysis.get('warnings', [])
+        }
+    
+    # Step 3: Calculate threat score
+    threat_score = threat_scorer.calculate_score(qr_info, security_report)
+    
+    # Step 4: Determine action
+    is_malicious = threat_score['total_score'] >= app.config['THREAT_SCORE_MALICIOUS']
+    is_suspicious = threat_score['total_score'] >= app.config['THREAT_SCORE_SUSPICIOUS']
+    
+    # Step 5: Determine redirect URL based on type
+    redirect_url = None
+    if not is_malicious:
+        if qr_info['type'] == 'url':
+            redirect_url = qr_info.get('url')
+        elif qr_info['type'] in ['upi', 'whatsapp_pay', 'crypto']:
+            # For payment types, use our redirect endpoint
+            redirect_url = url_for('safe_redirect', scan_id=scan_hash, _external=True)
+    
+    # Step 6: Prepare result
+    result = {
+        'scan_id': scan_hash,
+        'timestamp': datetime.utcnow().isoformat(),
+        'qr_content': qr_content,
+        'qr_info': qr_info,
+        'security_report': security_report,
+        'threat_score': threat_score,
+        'is_malicious': is_malicious,
+        'is_suspicious': is_suspicious,
+        'recommendation': 'BLOCK' if is_malicious else ('WARN' if is_suspicious else 'ALLOW'),
+        'redirect_url': redirect_url,
+        'can_redirect': redirect_url is not None
+    }
+    
+    # Step 7: Save to database
+    save_scan_result(result)
+    
+    return result
+
+def verify_upi_scheme(upi_string):
+    """Verify UPI scheme validity"""
+    try:
+        parsed = urllib.parse.urlparse(upi_string)
+        query_params = urllib.parse.parse_qs(parsed.query)
+        
+        # Check required parameters for UPI
+        required = ['pa', 'pn']
+        missing = [param for param in required if param not in query_params]
+        
+        return {
+            'valid': len(missing) == 0,
+            'missing_params': missing,
+            'has_amount': 'am' in query_params,
+            'amount': query_params.get('am', [None])[0],
+            'payee_vpa': query_params.get('pa', [None])[0],
+            'payee_name': query_params.get('pn', [None])[0],
+            'currency': query_params.get('cu', ['INR'])[0]
+        }
+    except Exception as e:
+        return {'valid': False, 'error': str(e)}
+
+def check_upi_fraud(upi_string):
+    """Check for UPI fraud patterns"""
+    warnings = []
+    
+    try:
+        parsed = urllib.parse.urlparse(upi_string)
+        query_params = urllib.parse.parse_qs(parsed.query)
+        
+        # Check for suspicious amounts
+        if 'am' in query_params:
+            try:
+                amount = float(query_params['am'][0])
+                if amount <= 0:
+                    warnings.append("Suspicious: Zero or negative amount")
+                elif amount > 100000:  # ₹1 lakh limit
+                    warnings.append("Warning: Large transaction amount")
+            except:
+                warnings.append("Invalid amount format")
+        
+        # Check for suspicious payee names
+        payee_name = query_params.get('pn', [''])[0]
+        suspicious_names = ['test', 'demo', 'fake', 'example']
+        if any(name in payee_name.lower() for name in suspicious_names):
+            warnings.append("Suspicious payee name")
+        
+        # Check UPI ID format
+        upi_id = query_params.get('pa', [''])[0]
+        if not '@' in upi_id:
+            warnings.append("Invalid UPI ID format")
+        elif len(upi_id.split('@')[0]) < 3:
+            warnings.append("Suspiciously short UPI ID")
+        
+    except Exception as e:
+        warnings.append(f"Error parsing UPI: {str(e)}")
+    
+    return {
+        'warnings': warnings,
+        'has_warnings': len(warnings) > 0
+    }
+
+def save_scan_result(result):
+    """Save scan result to database"""
+    try:
+        scan_result = ScanResult(
+            scan_id=result['scan_id'],
+            qr_content=result['qr_content'],
+            qr_type=result['qr_info']['type'],
+            threat_score=result['threat_score']['total_score'],
+            is_malicious=result['is_malicious'],
+            security_report=json.dumps(result['security_report']),
+            threat_breakdown=json.dumps(result['threat_score']['breakdown'])
+        )
+        db.session.add(scan_result)
+        db.session.commit()
+    except Exception as e:
+        app.logger.error(f"Error saving scan result: {e}")
+
+@app.route('/history')
+def history():
+    """View scan history with pagination"""
+    page = request.args.get('page', 1, type=int)
+    per_page = 20  # Show 20 scans per page
+    
+    # Query with pagination
+    pagination = ScanResult.query.order_by(
+        ScanResult.timestamp.desc()
+    ).paginate(page=page, per_page=per_page, error_out=False)
+    
+    scans = pagination.items
+    
+    return render_template('history.html', 
+                         scans=scans,
+                         pagination=pagination,
+                         total_scans=ScanResult.query.count())
+
+@app.route('/delete_scan/<scan_id>', methods=['POST'])
+#@login_required  # Optional: add if you have user authentication
+def delete_scan(scan_id):
+    """Delete a single scan result"""
+    try:
+        scan = ScanResult.query.filter_by(scan_id=scan_id).first()
+        
+        if not scan:
+            flash('Scan not found', 'error')
+            return redirect(url_for('history'))
+        
+        db.session.delete(scan)
+        db.session.commit()
+        
+        flash('Scan deleted successfully', 'success')
+    except Exception as e:
+        flash(f'Error deleting scan: {str(e)}', 'error')
+    
+    return redirect(url_for('history'))
+
+@app.route('/delete_all_history', methods=['POST'])
+#@login_required  # Optional: add if you have user authentication
+def delete_all_history():
+    """Delete all scan history"""
+    try:
+        # Delete all scan results
+        num_deleted = ScanResult.query.delete()
+        db.session.commit()
+        
+        flash(f'Successfully deleted {num_deleted} scan records', 'success')
+    except Exception as e:
+        flash(f'Error deleting history: {str(e)}', 'error')
+    
+    return redirect(url_for('history'))
+
+@app.route('/redirect/<scan_id>')
+def safe_redirect(scan_id):
+    """Safe redirect endpoint for verified QR codes"""
+    scan = ScanResult.query.filter_by(scan_id=scan_id).first()
+    
+    if not scan:
+        flash('Scan result not found')
+        return redirect(url_for('index'))
+    
+    if scan.is_malicious:
+        flash('Access denied: This QR code was flagged as malicious')
+        return redirect(url_for('index'))
+    
+    # Handle different QR types
+    if scan.qr_type == 'url':
+        return render_template('redirect.html', 
+                             url=scan.qr_content if scan.qr_type == 'url' else None,
+                             scan=scan)
+    
+    elif scan.qr_type == 'upi':
+        return render_template('redirect_upi.html', scan=scan)
+    
+    elif scan.qr_type == 'whatsapp_pay':
+        # Handle WhatsApp Pay
+        return render_template('redirect_whatsapp.html', scan=scan)
+    
+    elif scan.qr_type == 'crypto':
+        # Handle cryptocurrency
+        return render_template('redirect_crypto.html', scan=scan)
+    
+    else:
+        # For other types (text, email, etc.), show details
+        return render_template('redirect_other.html', scan=scan)
+
+@app.route('/api/scan/<scan_id>')
+def get_scan_result(scan_id):
+    """API to get scan result"""
+    scan = ScanResult.query.filter_by(scan_id=scan_id).first()
+    if not scan:
+        return jsonify({'error': 'Scan not found'}), 404
+    
+    return jsonify({
+        'scan_id': scan.scan_id,
+        'qr_content': scan.qr_content,
+        'qr_type': scan.qr_type,
+        'threat_score': scan.threat_score,
+        'is_malicious': scan.is_malicious,
+        'timestamp': scan.timestamp.isoformat(),
+        'security_report': json.loads(scan.security_report) if scan.security_report else {},
+        'threat_breakdown': json.loads(scan.threat_breakdown) if scan.threat_breakdown else {}
+    })
+
+if __name__ == '__main__':
+    with app.app_context():
+        db.create_all()
+    port = int(os.environ.get("PORT", 5000))
+    app.run(debug=False, host='0.0.0.0', port=port, 
+            ssl_context=('cert.pem', 'key.pem'))
+
+===== ./models/database.py =====
+from flask_sqlalchemy import SQLAlchemy
+from datetime import datetime
+
+db = SQLAlchemy()
+
+class ScanResult(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    scan_id = db.Column(db.String(32), unique=True, nullable=False)
+    qr_content = db.Column(db.Text, nullable=False)
+    qr_type = db.Column(db.String(50), nullable=False)
+    threat_score = db.Column(db.Float, default=0.0)
+    is_malicious = db.Column(db.Boolean, default=False)
+    security_report = db.Column(db.Text)  # JSON stored as text
+    threat_breakdown = db.Column(db.Text)  # JSON stored as text
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    user_ip = db.Column(db.String(45))
+    
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'scan_id': self.scan_id,
+            'qr_type': self.qr_type,
+            'threat_score': self.threat_score,
+            'is_malicious': self.is_malicious,
+            'timestamp': self.timestamp.isoformat() if self.timestamp else None,
+            'user_ip': self.user_ip
+        }
+
+===== ./static/js/script.js =====
+// QR Scanner Webcam functionality
+class QRScannerUI {
+    constructor() {
+        this.scanner = null;
+        this.isScanning = false;
+        this.init();
+    }
+
+    init() {
+        this.bindEvents();
+        this.initCameraSelector();
+    }
+
+    bindEvents() {
+        // Start camera button
+        document.getElementById('start-camera')?.addEventListener('click', () => this.startCamera());
+        
+        // Stop camera button
+        document.getElementById('stop-camera')?.addEventListener('click', () => this.stopCamera());
+        
+        // Analyze button
+        document.getElementById('analyze-camera')?.addEventListener('click', () => this.analyzeScan());
+        
+        // Tab change cleanup
+        document.querySelectorAll('a[data-bs-toggle="tab"]').forEach(tab => {
+            tab.addEventListener('shown.bs.tab', (e) => {
+                if (e.target.getAttribute('href') !== '#camera') {
+                    this.stopCamera();
+                }
+            });
+        });
+    }
+
+    async initCameraSelector() {
+        try {
+            const cameras = await Instascan.Camera.getCameras();
+            const select = document.getElementById('camera-select');
+            
+            if (cameras.length > 0) {
+                cameras.forEach((camera, index) => {
+                    const option = document.createElement('option');
+                    option.value = index;
+                    option.text = camera.name || `Camera ${index + 1}`;
+                    select?.appendChild(option);
+                });
+            } else {
+                console.warn('No cameras found.');
+            }
+        } catch (error) {
+            console.error('Error accessing cameras:', error);
+        }
+    }
+
+    async startCamera() {
+        if (this.isScanning) return;
+
+        try {
+            const cameras = await Instascan.Camera.getCameras();
+            const video = document.getElementById('preview');
+            
+            if (cameras.length > 0) {
+                this.scanner = new Instascan.Scanner({
+                    video: video,
+                    mirror: false,
+                    backgroundScan: true,
+                    refractoryPeriod: 5000
+                });
+
+                this.scanner.addListener('scan', (content) => {
+                    this.onQRScanned(content);
+                });
+
+                // Use back camera if available
+                const backCamera = cameras.find(c => c.name.toLowerCase().includes('back')) || cameras[0];
+                await this.scanner.start(backCamera);
+                
+                this.isScanning = true;
+                this.updateUIState(true);
+                
+                console.log('Camera started successfully');
+            } else {
+                alert('No cameras found. Please check your camera permissions.');
+            }
+        } catch (error) {
+            console.error('Error starting camera:', error);
+            alert('Error accessing camera. Please ensure camera permissions are granted.');
+        }
+    }
+
+    stopCamera() {
+        if (this.scanner) {
+            this.scanner.stop();
+            this.scanner = null;
+        }
+        this.isScanning = false;
+        this.updateUIState(false);
+    }
+
+    onQRScanned(content) {
+        console.log('QR Code scanned:', content);
+        
+        // Display scanned content
+        const scannedContent = document.getElementById('scanned-content');
+        const scannedResult = document.getElementById('scanned-result');
+        
+        if (scannedContent && scannedResult) {
+            scannedContent.textContent = content;
+            scannedResult.style.display = 'block';
+            
+            // Add vibration feedback if on mobile
+            if ('vibrate' in navigator) {
+                navigator.vibrate(100);
+            }
+            
+            // Play success sound
+            this.playScanSound();
+            
+            // Stop camera after successful scan
+            setTimeout(() => this.stopCamera(), 1000);
+        }
+    }
+
+    analyzeScan() {
+        const content = document.getElementById('scanned-content')?.textContent;
+        if (content) {
+            this.submitScan(content);
+        }
+    }
+
+    submitScan(content) {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '/scan';
+        
+        const methodInput = document.createElement('input');
+        methodInput.type = 'hidden';
+        methodInput.name = 'scan_method';
+        methodInput.value = 'webcam';
+        form.appendChild(methodInput);
+        
+        const contentInput = document.createElement('input');
+        contentInput.type = 'hidden';
+        contentInput.name = 'webcam_data';
+        contentInput.value = content;
+        form.appendChild(contentInput);
+        
+        document.body.appendChild(form);
+        form.submit();
+    }
+
+    updateUIState(isScanning) {
+        const startBtn = document.getElementById('start-camera');
+        const stopBtn = document.getElementById('stop-camera');
+        
+        if (startBtn) startBtn.disabled = isScanning;
+        if (stopBtn) stopBtn.disabled = !isScanning;
+    }
+
+    playScanSound() {
+        try {
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            oscillator.frequency.value = 800;
+            oscillator.type = 'sine';
+            
+            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+            
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.5);
+        } catch (error) {
+            console.log('Could not play scan sound:', error);
+        }
+    }
+}
+
+// File upload preview
+class FileUploadUI {
+    constructor() {
+        this.init();
+    }
+
+    init() {
+        const fileInput = document.getElementById('file');
+        const preview = document.getElementById('file-preview');
+        
+        if (fileInput && preview) {
+            fileInput.addEventListener('change', (e) => this.handleFileSelect(e));
+        }
+    }
+
+    handleFileSelect(event) {
+        const file = event.target.files[0];
+        const preview = document.getElementById('file-preview');
+        
+        if (!file || !preview) return;
+        
+        if (!file.type.match('image.*')) {
+            preview.innerHTML = '<div class="alert alert-danger">Please select an image file</div>';
+            return;
+        }
+        
+        const reader = new FileReader();
+        
+        reader.onload = (e) => {
+            preview.innerHTML = `
+                <div class="text-center">
+                    <img src="${e.target.result}" class="img-fluid rounded" style="max-height: 200px;" alt="QR Code Preview">
+                    <p class="mt-2 text-muted">${file.name} (${this.formatFileSize(file.size)})</p>
+                </div>
+            `;
+        };
+        
+        reader.readAsDataURL(file);
+    }
+
+    formatFileSize(bytes) {
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+}
+
+// Threat score visualization
+class ThreatVisualizer {
+    constructor() {
+        this.init();
+    }
+
+    init() {
+        this.renderThreatGauges();
+        this.renderCheckStatus();
+    }
+
+    renderThreatGauges() {
+        const gaugeElements = document.querySelectorAll('.threat-gauge');
+        
+        gaugeElements.forEach(element => {
+            const score = parseFloat(element.dataset.score);
+            const color = this.getScoreColor(score);
+            
+            // Create SVG gauge
+            const svg = this.createGaugeSVG(score, color);
+            element.innerHTML = '';
+            element.appendChild(svg);
+        });
+    }
+
+    createGaugeSVG(score, color) {
+        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        svg.setAttribute('viewBox', '0 0 100 100');
+        svg.setAttribute('width', '100%');
+        svg.setAttribute('height', '100');
+        
+        // Background circle
+        const bgCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        bgCircle.setAttribute('cx', '50');
+        bgCircle.setAttribute('cy', '50');
+        bgCircle.setAttribute('r', '45');
+        bgCircle.setAttribute('fill', 'none');
+        bgCircle.setAttribute('stroke', '#e9ecef');
+        bgCircle.setAttribute('stroke-width', '8');
+        svg.appendChild(bgCircle);
+        
+        // Progress circle
+        const progressCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        progressCircle.setAttribute('cx', '50');
+        progressCircle.setAttribute('cy', '50');
+        progressCircle.setAttribute('r', '45');
+        progressCircle.setAttribute('fill', 'none');
+        progressCircle.setAttribute('stroke', color);
+        progressCircle.setAttribute('stroke-width', '8');
+        progressCircle.setAttribute('stroke-dasharray', `${score * 2.83} 283`);
+        progressCircle.setAttribute('stroke-linecap', 'round');
+        progressCircle.setAttribute('transform', 'rotate(-90 50 50)');
+        svg.appendChild(progressCircle);
+        
+        // Score text
+        const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        text.setAttribute('x', '50');
+        text.setAttribute('y', '55');
+        text.setAttribute('text-anchor', 'middle');
+        text.setAttribute('font-size', '20');
+        text.setAttribute('font-weight', 'bold');
+        text.setAttribute('fill', color);
+        text.textContent = Math.round(score);
+        svg.appendChild(text);
+        
+        return svg;
+    }
+
+    getScoreColor(score) {
+        if (score >= 70) return '#dc3545';
+        if (score >= 40) return '#ffc107';
+        if (score >= 20) return '#17a2b8';
+        return '#28a745';
+    }
+
+    renderCheckStatus() {
+        const checkCards = document.querySelectorAll('.check-card');
+        
+        checkCards.forEach(card => {
+            const score = parseFloat(card.dataset.score || 0);
+            const icon = card.querySelector('.check-icon i');
+            
+            if (icon) {
+                if (score >= 10) {
+                    icon.className = 'fas fa-times-circle text-danger';
+                } else if (score >= 5) {
+                    icon.className = 'fas fa-exclamation-triangle text-warning';
+                } else {
+                    icon.className = 'fas fa-check-circle text-success';
+                }
+            }
+        });
+    }
+}
+
+// Initialize when DOM is loaded
+document.addEventListener('DOMContentLoaded', () => {
+    // Initialize QR scanner if on scan page
+    if (document.getElementById('preview')) {
+        window.qrScanner = new QRScannerUI();
+    }
+    
+    // Initialize file upload preview
+    if (document.getElementById('file')) {
+        window.fileUploadUI = new FileUploadUI();
+    }
+    
+    // Initialize threat visualizer if on result page
+    if (document.querySelector('.threat-gauge')) {
+        window.threatVisualizer = new ThreatVisualizer();
+    }
+    
+    // Add copy functionality for scan IDs
+    document.querySelectorAll('.copy-scan-id').forEach(button => {
+        button.addEventListener('click', (e) => {
+            const scanId = e.target.dataset.scanId;
+            navigator.clipboard.writeText(scanId).then(() => {
+                const originalText = e.target.innerHTML;
+                e.target.innerHTML = '<i class="fas fa-check"></i> Copied!';
+                setTimeout(() => {
+                    e.target.innerHTML = originalText;
+                }, 2000);
+            });
+        });
+    });
+    
+    // Auto-expand QR content on click
+    document.querySelectorAll('.expand-qr-content').forEach(button => {
+        button.addEventListener('click', (e) => {
+            const content = e.target.parentElement.querySelector('.qr-content');
+            if (content) {
+                content.classList.toggle('expanded');
+                if (content.classList.contains('expanded')) {
+                    e.target.innerHTML = '<i class="fas fa-minus"></i> Show Less';
+                } else {
+                    e.target.innerHTML = '<i class="fas fa-plus"></i> Show More';
+                }
+            }
+        });
+    });
+});
+
+// Toast notifications
+class ToastNotification {
+    static show(message, type = 'info') {
+        const toast = document.createElement('div');
+        toast.className = `toast-notification alert alert-${type} alert-dismissible fade show`;
+        toast.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        
+        toast.style.position = 'fixed';
+        toast.style.top = '20px';
+        toast.style.right = '20px';
+        toast.style.zIndex = '9999';
+        toast.style.minWidth = '300px';
+        
+        document.body.appendChild(toast);
+        
+        // Auto-remove after 5 seconds
+        setTimeout(() => {
+            if (toast.parentNode) {
+                toast.remove();
+            }
+        }, 5000);
+    }
+}
+
+// Export for global use
+window.ToastNotification = ToastNotification;
+
+===== ./static/css/style.css =====
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+}
+
+.navbar {
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.card {
+    border: none;
+    border-radius: 15px;
+    overflow: hidden;
+    transition: transform 0.3s;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+}
+
+.feature-card {
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+}
+
+.feature-icon {
+    width: 80px;
+    height: 80px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto;
+}
+
+.feature-icon i {
+    color: white;
+    font-size: 2rem;
+}
+
+.step-card {
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+    position: relative;
+}
+
+.step-number {
+    width: 40px;
+    height: 40px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    margin: 0 auto 15px;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+}
+
+.btn-primary:hover {
+    background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
+}
+
+#preview {
+    border-radius: 10px;
+    border: 3px solid #667eea;
+}
+
+.threat-score {
+    font-size: 4rem;
+    font-weight: bold;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+}
+
+.score-danger { color: #dc3545; }
+.score-warning { color: #ffc107; }
+.score-info { color: #17a2b8; }
+.score-success { color: #28a745; }
+
+.check-card {
+    border-left: 4px solid #667eea;
+}
+
+.check-card:hover {
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+.countdown {
+    font-family: 'Courier New', monospace;
+    animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+}
+
+footer {
+    margin-top: auto;
+}
+
+/* Fix tab visibility on colored header */
+.card-header .nav-tabs {
+    border-bottom: none;
+}
+
+.card-header .nav-tabs .nav-link {
+    color: rgba(255, 255, 255, 0.75);
+    border-color: transparent;
+    transition: all 0.2s;
+}
+
+.card-header .nav-tabs .nav-link:hover {
+    color: #ffffff;
+    border-color: rgba(255, 255, 255, 0.3);
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.card-header .nav-tabs .nav-link.active {
+    color: #000000;  /* changed from #0d6efd to black */
+    background-color: #ffffff;
+    border-color: #ffffff;
+    font-weight: 600;
+}
+

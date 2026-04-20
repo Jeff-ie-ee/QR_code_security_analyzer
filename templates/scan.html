@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scan QR Code</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- Use jsQR library instead of Instascan -->
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+    <style>
+    .card-header .nav-tabs .nav-link.active {
+        color: #000000 !important;
+        background-color: #ffffff !important;
+        border-color: #ffffff !important;
+        font-weight: 600 !important;
+        border-radius: 4px 4px 0 0 !important;
+    }
+</style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="/">
+                <i class="fas fa-qrcode"></i> Secure QR Scanner
+            </a>
+        </div>
+    </nav>
+
+    <div class="container mt-5">
+        <div class="row">
+            <div class="col-lg-8 mx-auto">
+                <h2 class="text-center mb-4">
+                    <i class="fas fa-camera"></i> Scan QR Code
+                </h2>
+
+                <div class="card shadow">
+                    <div class="card-header bg-primary text-white">
+    <ul class="nav nav-tabs card-header-tabs" id="scanTabs" role="tablist">
+        <li class="nav-item">
+            <a class="nav-link active text-white" id="camera-tab" data-bs-toggle="tab" href="#camera">
+                <i class="fas fa-camera"></i> Webcam
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link text-white" id="upload-tab" data-bs-toggle="tab" href="#upload">
+                <i class="fas fa-upload"></i> Upload
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link text-white" id="manual-tab" data-bs-toggle="tab" href="#manual">
+                <i class="fas fa-keyboard"></i> Manual
+            </a>
+        </li>
+    </ul>
+</div>
+
+                    <div class="card-body">
+                        <div class="tab-content" id="scanTabsContent">
+                            <!-- Camera Tab -->
+                            <div class="tab-pane fade show active" id="camera">
+                                <div class="text-center">
+                                    <div id="camera-container" class="mb-3">
+                                        <video id="video" width="100%" height="auto" style="max-width: 500px;" autoplay></video>
+                                        <canvas id="canvas" style="display: none;"></canvas>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <select id="camera-select" class="form-select mb-2" style="max-width: 300px; margin: 0 auto;">
+                                            <option value="">Select Camera</option>
+                                        </select>
+                                        
+                                        <button id="start-camera" class="btn btn-success">
+                                            <i class="fas fa-play"></i> Start Camera
+                                        </button>
+                                        <button id="stop-camera" class="btn btn-danger" disabled>
+                                            <i class="fas fa-stop"></i> Stop Camera
+                                        </button>
+                                    </div>
+                                    
+                                    <div id="scanned-result" class="alert alert-info" style="display: none;">
+                                        <h5>Scanned Content:</h5>
+                                        <p id="scanned-content" class="mb-2"></p>
+                                        <div class="d-grid gap-2 d-md-block">
+                                            <button id="analyze-camera" class="btn btn-primary">
+                                                <i class="fas fa-search"></i> Analyze Security
+                                            </button>
+                                            <button id="scan-again" class="btn btn-secondary">
+                                                <i class="fas fa-redo"></i> Scan Another
+                                            </button>
+                                        </div>
+                                    </div>
+                                    
+                                    <div id="camera-error" class="alert alert-danger mt-3" style="display: none;"></div>
+                                </div>
+                            </div>
+
+                            <!-- Upload Tab -->
+                            <div class="tab-pane fade" id="upload">
+                                <form method="POST" action="/scan" enctype="multipart/form-data">
+                                    <input type="hidden" name="scan_method" value="upload">
+                                    <div class="mb-3">
+                                        <label for="file" class="form-label">Select QR Code Image</label>
+                                        <input class="form-control" type="file" id="file" name="file" accept="image/*" required>
+                                        <div class="form-text">
+                                            Supported formats: PNG, JPG, JPEG, GIF, BMP
+                                        </div>
+                                    </div>
+                                    <div class="text-center">
+                                        <button type="submit" class="btn btn-primary">
+                                            <i class="fas fa-upload"></i> Upload & Analyze
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+
+                            <!-- Manual Tab -->
+                            <div class="tab-pane fade" id="manual">
+                                <form method="POST" action="/scan">
+                                    <input type="hidden" name="scan_method" value="manual">
+                                    <div class="mb-3">
+                                        <label for="qr_content" class="form-label">Enter QR Code Content</label>
+                                        <textarea class="form-control" id="qr_content" name="qr_content" rows="4" placeholder="Paste QR code content here (URL, UPI, text, etc.)" required></textarea>
+                                    </div>
+                                    <div class="text-center">
+                                        <button type="submit" class="btn btn-primary">
+                                            <i class="fas fa-search"></i> Analyze Security
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-4">
+                    <a href="/" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left"></i> Back to Home
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // Webcam QR Scanner using jsQR
+        class QRScanner {
+            constructor() {
+                this.video = document.getElementById('video');
+                this.canvas = document.getElementById('canvas');
+                this.canvasContext = this.canvas.getContext('2d');
+                this.scanning = false;
+                this.mediaStream = null;
+                
+                this.init();
+            }
+            
+            init() {
+                this.populateCameraList();
+                this.bindEvents();
+            }
+            
+            async populateCameraList() {
+                try {
+                    const devices = await navigator.mediaDevices.enumerateDevices();
+                    const videoDevices = devices.filter(device => device.kind === 'videoinput');
+                    const select = document.getElementById('camera-select');
+                    
+                    videoDevices.forEach((device, index) => {
+                        const option = document.createElement('option');
+                        option.value = device.deviceId;
+                        option.text = device.label || `Camera ${index + 1}`;
+                        select.appendChild(option);
+                    });
+                } catch (error) {
+                    console.error('Error getting cameras:', error);
+                }
+            }
+            
+            bindEvents() {
+                document.getElementById('start-camera').addEventListener('click', () => this.startCamera());
+                document.getElementById('stop-camera').addEventListener('click', () => this.stopCamera());
+                document.getElementById('analyze-camera').addEventListener('click', () => this.analyzeScan());
+                document.getElementById('scan-again').addEventListener('click', () => this.resetScan());
+                
+                // Tab change cleanup
+                document.querySelectorAll('a[data-bs-toggle="tab"]').forEach(tab => {
+                    tab.addEventListener('shown.bs.tab', (event) => {
+                        if (event.target.getAttribute('href') !== '#camera') {
+                            this.stopCamera();
+                        }
+                    });
+                });
+            }
+            
+            async startCamera() {
+                if (this.scanning) return;
+                
+                const select = document.getElementById('camera-select');
+                const deviceId = select.value;
+                
+                const constraints = {
+                    video: {
+                        facingMode: 'environment', // Prefer rear camera
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 }
+                    }
+                };
+                
+                if (deviceId) {
+                    constraints.video.deviceId = { exact: deviceId };
+                }
+                
+                try {
+                    this.mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
+                    this.video.srcObject = this.mediaStream;
+                    this.video.play();
+                    
+                    this.scanning = true;
+                    this.updateUIState(true);
+                    this.hideError();
+                    
+                    // Start scanning for QR codes
+                    this.scanFrame();
+                    
+                } catch (error) {
+                    this.showError(`Camera error: ${error.message}`);
+                    console.error('Camera error:', error);
+                }
+            }
+            
+            stopCamera() {
+                if (this.mediaStream) {
+                    this.mediaStream.getTracks().forEach(track => track.stop());
+                    this.mediaStream = null;
+                }
+                
+                if (this.video.srcObject) {
+                    this.video.srcObject = null;
+                }
+                
+                this.scanning = false;
+                this.updateUIState(false);
+            }
+            
+            updateUIState(isScanning) {
+                document.getElementById('start-camera').disabled = isScanning;
+                document.getElementById('stop-camera').disabled = !isScanning;
+                document.getElementById('camera-select').disabled = isScanning;
+            }
+            
+            showError(message) {
+                const errorDiv = document.getElementById('camera-error');
+                errorDiv.textContent = message;
+                errorDiv.style.display = 'block';
+            }
+            
+            hideError() {
+                document.getElementById('camera-error').style.display = 'none';
+            }
+            
+            scanFrame() {
+                if (!this.scanning) return;
+                
+                // Set canvas dimensions to match video
+                if (this.video.readyState === this.video.HAVE_ENOUGH_DATA) {
+                    this.canvas.height = this.video.videoHeight;
+                    this.canvas.width = this.video.videoWidth;
+                    
+                    // Draw video frame to canvas
+                    this.canvasContext.drawImage(this.video, 0, 0, this.canvas.width, this.canvas.height);
+                    
+                    // Get image data from canvas
+                    const imageData = this.canvasContext.getImageData(0, 0, this.canvas.width, this.canvas.height);
+                    
+                    // Try to decode QR code
+                    const code = jsQR(imageData.data, imageData.width, imageData.height, {
+                        inversionAttempts: 'dontInvert',
+                    });
+                    
+                    if (code) {
+                        this.onQRScanned(code.data);
+                    }
+                }
+                
+                // Continue scanning
+                requestAnimationFrame(() => this.scanFrame());
+            }
+            
+            onQRScanned(content) {
+                console.log('QR Code scanned:', content);
+                
+                // Stop camera
+                this.stopCamera();
+                
+                // Display result
+                const scannedContent = document.getElementById('scanned-content');
+                const scannedResult = document.getElementById('scanned-result');
+                
+                if (scannedContent && scannedResult) {
+                    scannedContent.textContent = content;
+                    scannedResult.style.display = 'block';
+                    
+                    // Vibrate if supported
+                    if ('vibrate' in navigator) {
+                        navigator.vibrate(100);
+                    }
+                    
+                    // Play sound
+                    this.playScanSound();
+                }
+            }
+            
+            analyzeScan() {
+                const content = document.getElementById('scanned-content').textContent;
+                if (content) {
+                    this.submitScan(content);
+                }
+            }
+            
+            submitScan(content) {
+                // Create form and submit
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = '/scan';
+                
+                const methodInput = document.createElement('input');
+                methodInput.type = 'hidden';
+                methodInput.name = 'scan_method';
+                methodInput.value = 'webcam';
+                form.appendChild(methodInput);
+                
+                const contentInput = document.createElement('input');
+                contentInput.type = 'hidden';
+                contentInput.name = 'webcam_data';
+                contentInput.value = content;
+                form.appendChild(contentInput);
+                
+                document.body.appendChild(form);
+                form.submit();
+            }
+            
+            resetScan() {
+                document.getElementById('scanned-result').style.display = 'none';
+                document.getElementById('scanned-content').textContent = '';
+                this.startCamera();
+            }
+            
+            playScanSound() {
+                try {
+                    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    const oscillator = audioContext.createOscillator();
+                    const gainNode = audioContext.createGain();
+                    
+                    oscillator.connect(gainNode);
+                    gainNode.connect(audioContext.destination);
+                    
+                    oscillator.frequency.value = 800;
+                    oscillator.type = 'sine';
+                    
+                    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+                    
+                    oscillator.start(audioContext.currentTime);
+                    oscillator.stop(audioContext.currentTime + 0.5);
+                } catch (error) {
+                    console.log('Could not play scan sound:', error);
+                }
+            }
+        }
+        
+        // Initialize scanner when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            window.qrScanner = new QRScanner();
+            
+            // Handle tab parameter from URL
+            const urlParams = new URLSearchParams(window.location.search);
+            const tabParam = urlParams.get('tab');
+            
+            if (tabParam) {
+                const tabElement = document.querySelector(`[href="#${tabParam}"]`);
+                if (tabElement) {
+                    const tab = new bootstrap.Tab(tabElement);
+                    tab.show();
+                }
+            }
+        });
+    </script>
+</body>
+</html>

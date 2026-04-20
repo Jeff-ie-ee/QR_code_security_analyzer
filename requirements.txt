@@ -1,0 +1,11 @@
+Flask
+gunicorn
+Flask-SQLAlchemy
+SQLAlchemy
+opencv-python-headless
+pyzbar
+Pillow
+python-dotenv
+alembic
+qrcode[pil]
+requests
