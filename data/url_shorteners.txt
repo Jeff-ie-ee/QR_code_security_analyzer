@@ -1,0 +1,74 @@
+# Known URL-shortening services. One domain per line.
+# Lines starting with # are ignored.
+# QR codes pointing to these domains hide the real destination.
+
+# ── Major general-purpose shorteners ─────────────────────────────────────────
+bit.ly
+bitly.com
+tinyurl.com
+goo.gl
+t.co
+ow.ly
+is.gd
+buff.ly
+rebrand.ly
+short.io
+shorte.st
+bc.vc
+adf.ly
+bl.ink
+cutt.ly
+tiny.cc
+qr.io
+lnkd.in
+rb.gy
+v.gd
+s.id
+clk.sh
+short.gy
+chilp.it
+smarturl.it
+linktr.ee
+lnk.bio
+hubs.ly
+hubspot.com
+clickmeter.com
+
+# ── Social-media / platform shorteners ───────────────────────────────────────
+fb.me
+fb.com/l.php
+instagram.com/l
+youtu.be
+amzn.to
+amzn.in
+flic.kr
+wp.me
+dlvr.it
+soo.gd
+su.pr
+flip.it
+zpr.io
+po.st
+
+# ── Marketing / analytics shorteners ─────────────────────────────────────────
+go2l.ink
+mcaf.ee
+qr.net
+qrco.de
+url.ie
+yourls.org
+x.co
+tiny.ie
+trib.al
+tr.im
+ux.nu
+
+# ── Potentially abused / ad-injecting shorteners ─────────────────────────────
+adfoc.us
+clkim.com
+link.tl
+za.gl
+s.click.aliexpress.com
+click.aliexpress.com
+tracking.tldrlegal.com
+go.redirectingat.com

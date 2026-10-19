@@ -1,0 +1,99 @@
+# Keywords that indicate scam/fraud in crypto QR code messages and labels.
+# Lines starting with # are ignored. One keyword per line.
+# Match is performed case-insensitively on the message/label/memo field.
+
+# ── Classic scam hooks ────────────────────────────────────────────────────────
+urgent
+immediate
+act now
+limited time
+last chance
+expires today
+time sensitive
+final notice
+action required
+
+# ── Free-money / giveaway lures ───────────────────────────────────────────────
+free
+giveaway
+airdrop
+reward
+rewards
+prize
+prizes
+lottery
+winner
+winners
+bonus
+cashback
+cash back
+rebate
+refund
+claim
+claim now
+claim your
+you have won
+congratulations
+
+# ── Investment / doubling scams ───────────────────────────────────────────────
+investment
+invest now
+double
+triple
+10x
+100x
+guaranteed return
+guaranteed profit
+passive income
+profit
+roi
+high return
+no risk
+risk free
+risk-free
+
+# ── Wallet / account compromise lures ────────────────────────────────────────
+wallet
+wallet recovery
+wallet restore
+seed phrase
+private key
+backup phrase
+recovery phrase
+mnemonic
+verify wallet
+wallet verification
+connect wallet
+wallet support
+wallet suspended
+account recovery
+account verify
+
+# ── Impersonation / support scams ─────────────────────────────────────────────
+support
+customer support
+tech support
+helpdesk
+official
+authorized
+certified
+binance support
+coinbase support
+kraken support
+metamask support
+trust wallet support
+
+# ── Social engineering pressure ───────────────────────────────────────────────
+send now
+transfer now
+confirm transaction
+approve payment
+unlock funds
+release funds
+to receive
+in order to
+tax payment
+gas fee
+fee required
+processing fee
+activation fee

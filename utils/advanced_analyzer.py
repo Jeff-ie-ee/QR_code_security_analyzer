@@ -2,24 +2,38 @@
 Advanced analyzers for WiFi and Cryptocurrency QR codes
 """
 import re
+import os
 import urllib.parse
 from datetime import datetime
 from typing import Dict, Any, List
 import hashlib
 
+# Resolve path to data/ directory relative to this file
+_DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'data')
+
+
+def _load_wordlist(filename: str) -> list:
+    """Load a plain-text wordlist from data/, skipping blank lines and comments."""
+    path = os.path.join(_DATA_DIR, filename)
+    try:
+        with open(path, 'r', encoding='utf-8') as f:
+            return [
+                line.strip()
+                for line in f
+                if line.strip() and not line.startswith('#')
+            ]
+    except FileNotFoundError:
+        return []
+
+
 class WiFiAnalyzer:
     """Analyze WiFi QR codes for security"""
-    
+
     def __init__(self):
-        # Common weak passwords
-        self.common_passwords = [
-            'password', 'password123', '12345678', 'admin',
-            'welcome', 'qwerty', 'letmein', 'monkey', 'dragon',
-            'baseball', 'football', 'mustang', 'master', 'hello',
-            'freedom', 'whatever', 'qazwsx', 'trustno1', 'sunshine'
-        ]
-        
-        # Sequential patterns
+        self.common_passwords = _load_wordlist('common_passwords.txt')
+        self.suspicious_ssids = _load_wordlist('wifi_suspicious_ssids.txt')
+
+        # Sequential keyboard/numeric patterns
         self.sequential_patterns = [
             '1234', '2345', '3456', '4567', '5678', '6789', '7890',
             'abcd', 'bcde', 'cdef', 'defg', 'efgh', 'fghi', 'ghij',
@@ -117,9 +131,7 @@ class WiFiAnalyzer:
         
         # 3. SSID ANALYSIS
         if ssid:
-            suspicious_ssids = ['FreeWiFi', 'Free_WiFi', 'Public_WiFi', 
-                               'Airport_WiFi', 'Hotel_WiFi', 'Guest']
-            for suspicious in suspicious_ssids:
+            for suspicious in self.suspicious_ssids:
                 if suspicious.lower() in ssid.lower():
                     warnings.append(f"⚠️ SUSPICIOUS SSID: '{suspicious}' in network name")
                     security_score -= 10
@@ -211,14 +223,8 @@ class CryptoAnalyzer:
             }
         }
         
-        # Common scam messages/keywords
-        self.scam_keywords = [
-            'urgent', 'immediate', 'investment', 'double',
-            'free', 'giveaway', 'airdrop', 'reward',
-            'wallet', 'recovery', 'support', 'verify',
-            'prize', 'lottery', 'winner', 'bonus'
-        ]
-    
+        self.scam_keywords = _load_wordlist('crypto_scam_keywords.txt')
+
     def analyze_crypto(self, content: str, crypto_type: str, address: str) -> Dict[str, Any]:
         """Analyze cryptocurrency QR code"""
         warnings = []

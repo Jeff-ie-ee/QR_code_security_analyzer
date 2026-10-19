@@ -1,18 +1,12 @@
-# Python
+venv/
+.venv/
 __pycache__/
-*.pyc
-
-# Env & secrets
+*.py[cod]
 .env
 
-# Keys & certs
-*.pem
+# Local database
+instance/*.db
 
-# Flask instance
-instance/
-
-# Uploads (optional)
-uploads/
-
-# OS
-.DS_Store
+# Uploaded files (keep the folder itself)
+uploads/*
+!uploads/.gitkeep

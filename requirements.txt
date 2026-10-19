@@ -9,3 +9,7 @@ python-dotenv
 alembic
 qrcode[pil]
 requests
+python-whois
+tldextract
+python-dateutil
+idna

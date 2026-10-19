@@ -1,0 +1,77 @@
+# Suspicious WiFi SSID patterns (evil-twin / honeypot indicators).
+# Lines starting with # are ignored. One pattern per line (case-insensitive substring match).
+# If any of these strings appears inside the scanned SSID, it is flagged.
+
+# ── Generic "free" honeypots ──────────────────────────────────────────────────
+freewifi
+free_wifi
+free-wifi
+free wifi
+freeinternet
+free_internet
+freenet
+freenetwork
+freesignal
+
+# ── Location-based honeypots ──────────────────────────────────────────────────
+airport_wifi
+airportwifi
+airport-wifi
+hotel_wifi
+hotelwifi
+hotel-wifi
+restaurant_wifi
+cafe_wifi
+cafewifi
+cafe-wifi
+mall_wifi
+mall-wifi
+starbucks_wifi
+mcdonalds_wifi
+subway_wifi
+lounge_wifi
+terminal_wifi
+
+# ── Generic public / guest bait ───────────────────────────────────────────────
+public_wifi
+publicwifi
+public-wifi
+guestwifi
+guest_wifi
+guest-wifi
+guestnetwork
+guest_network
+open_wifi
+openwifi
+open-wifi
+publicnet
+public_network
+
+# ── ISP / router impersonation ────────────────────────────────────────────────
+xfinity_wifi
+xfinitywifi
+att_wifi
+attwifi
+linksys_setup
+netgear_setup
+dlink_setup
+tplink_setup
+default_router
+routerlogin
+setup_wizard
+
+# ── Phishing / credential harvest SSIDs ──────────────────────────────────────
+login_required
+loginrequired
+connect_to_continue
+click_to_connect
+accept_terms
+captive_portal
+internet_access
+getinternet
+get_internet
+wifi_setup
+wifisetup
+connect_here
+connecthere
+scan_to_connect

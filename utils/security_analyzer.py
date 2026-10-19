@@ -1,6 +1,7 @@
 import requests
 import ssl
 import socket
+import os
 import whois
 from datetime import datetime, timedelta, timezone
 import urllib.parse
@@ -15,6 +16,82 @@ from dateutil import parser as dateutil_parser
 from difflib import SequenceMatcher
 from utils.advanced_analyzer import WiFiAnalyzer, CryptoAnalyzer
 
+_DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'data')
+
+
+def _load_wordlist(filename: str) -> List[str]:
+    """Load a plain-text wordlist from data/, skipping blank lines and comments."""
+    path = os.path.join(_DATA_DIR, filename)
+    try:
+        with open(path, 'r', encoding='utf-8') as f:
+            return [
+                line.strip()
+                for line in f
+                if line.strip() and not line.startswith('#')
+            ]
+    except FileNotFoundError:
+        return []
+
+
+def _load_brands() -> Dict[str, List[str]]:
+    """
+    Load brands from data/brands.json and flatten all categories into a single
+    dict mapping brand keyword → list of legitimate domains.
+    """
+    path = os.path.join(_DATA_DIR, 'brands.json')
+    flat: Dict[str, List[str]] = {}
+    try:
+        with open(path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        for category, entries in data.items():
+            if category.startswith('_'):
+                continue
+            for brand, domains in entries.items():
+                flat[brand] = domains
+    except (FileNotFoundError, json.JSONDecodeError):
+        pass
+    return flat
+
+
+def _load_payment_gateways() -> tuple:
+    """
+    Load payment gateway data from data/payment_gateways.json.
+    Returns (gateways_dict, typos_dict) where each maps gateway → list.
+    """
+    path = os.path.join(_DATA_DIR, 'payment_gateways.json')
+    gateways: Dict[str, List[str]] = {}
+    typos: Dict[str, List[str]] = {}
+    try:
+        with open(path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        for gateway, info in data.items():
+            if gateway.startswith('_'):
+                continue
+            gateways[gateway] = info.get('legitimate_domains', [])
+            typos[gateway] = info.get('typo_patterns', [])
+    except (FileNotFoundError, json.JSONDecodeError):
+        pass
+    return gateways, typos
+
+
+def _load_confusables() -> Dict[str, str]:
+    """
+    Load Unicode confusable character mappings from data/homograph_confusables.json.
+    Returns a flat dict mapping each confusable Unicode char to its ASCII equivalent.
+    """
+    path = os.path.join(_DATA_DIR, 'homograph_confusables.json')
+    flat: Dict[str, str] = {}
+    try:
+        with open(path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        for category, mapping in data.items():
+            if category.startswith('_'):
+                continue
+            flat.update(mapping)
+    except (FileNotFoundError, json.JSONDecodeError):
+        pass
+    return flat
+
 
 class SecurityAnalyzer:
     def __init__(self, google_api_key=None, virustotal_api_key=None):
@@ -24,18 +101,8 @@ class SecurityAnalyzer:
         self.wifi_analyzer = WiFiAnalyzer()
         self.crypto_analyzer = CryptoAnalyzer()
 
-        # Phishing keywords
-        self.phishing_keywords = [
-            'login', 'verify', 'secure', 'account', 'banking', 'paypal',
-            'update', 'confirm', 'password', 'credential', 'urgent',
-            'suspicious', 'activity', 'locked', 'restricted'
-        ]
-
-        # Common shorteners
-        self.short_domains = [
-            'bit.ly', 'tinyurl.com', 'goo.gl', 'ow.ly', 't.co',
-            'is.gd', 'buff.ly', 'adf.ly', 'shorte.st', 'bc.vc'
-        ]
+        self.phishing_keywords = _load_wordlist('phishing_keywords.txt')
+        self.short_domains = _load_wordlist('url_shorteners.txt')
 
     # ── String similarity using SequenceMatcher ─────────
     def is_similar(self, a: str, b: str, threshold: float = 0.8) -> bool:
@@ -70,53 +137,75 @@ class SecurityAnalyzer:
             parsed = urlparse(url)
             domain = parsed.netloc
 
-            # 1. Google Safe Browsing
+            # 5. Redirect Chain Analysis — run FIRST so later checks can
+            #    use the final destination URL, not just the original.
+            redirect_result = self.follow_redirects(url)
+            result['checks']['redirects'] = redirect_result
+
+            final_url = redirect_result.get('final_url', url)
+            final_parsed = urlparse(final_url)
+            final_domain = final_parsed.netloc or domain
+            url_changed = final_url.rstrip('/') != url.rstrip('/')
+            # Only re-check external APIs when the domain actually changed —
+            # a plain http→https upgrade on the same domain wastes rate-limited calls
+            domain_changed = final_domain != domain
+
+            # 1. Google Safe Browsing — check both original and final URL
             if self.google_api_key:
                 result['checks']['safe_browsing'] = \
                     self.check_google_safe_browsing(url)
+                if url_changed and domain_changed:
+                    result['checks']['safe_browsing_final'] = \
+                        self.check_google_safe_browsing(final_url)
 
-            # 2. VirusTotal
+            # 2. VirusTotal — check both original and final URL
             if self.virustotal_api_key:
                 result['checks']['virustotal'] = \
                     self.check_virustotal(url)
+                if url_changed and domain_changed:
+                    result['checks']['virustotal_final'] = \
+                        self.check_virustotal(final_url)
 
-            # 3. WHOIS Domain Age
-            result['checks']['whois'] = self.check_domain_age(domain)
+            # 3. WHOIS Domain Age — run on final domain
+            result['checks']['whois'] = self.check_domain_age(final_domain)
 
-            # 4. SSL Certificate Check
-            if parsed.scheme == 'https':
+            # 4. SSL Certificate Check — run on final domain
+            if final_parsed.scheme == 'https':
                 result['checks']['ssl'] = \
-                    self.check_ssl_certificate(domain)
+                    self.check_ssl_certificate(final_domain)
 
-            # 5. Redirect Chain Analysis
-            result['checks']['redirects'] = self.follow_redirects(url)
-
-            # 6. Shortlink Detection
+            # 6. Shortlink Detection — check original domain
             result['checks']['shortlink'] = self.is_shortlink(domain)
 
-            # 7. Domain Spoof Detection
-            result['checks']['spoof'] = self.check_domain_spoofing(domain)
+            # 7. Domain Spoof Detection — run on final domain
+            result['checks']['spoof'] = self.check_domain_spoofing(final_domain)
 
-            # 8. Unicode Homograph Detection
+            # 8. Unicode Homograph Detection — run on final domain
             result['checks']['homograph'] = \
-                self.check_homograph_attack(domain)
+                self.check_homograph_attack(final_domain)
 
-            # 9. Phishing Keyword Detection
+            # 9. Phishing Keyword Detection — run on final URL
             result['checks']['phishing_keywords'] = \
-                self.check_phishing_keywords(url)
+                self.check_phishing_keywords(final_url)
 
-            # 10. Blacklist / Whitelist Reputation
+            # 10. Blacklist / Whitelist Reputation — run on final domain
             result['checks']['reputation'] = \
-                self.check_domain_reputation(domain)
+                self.check_domain_reputation(final_domain)
 
-            # 11. Payment Fraud Detection
+            # 11. Payment Fraud Detection — run on final URL
             result['checks']['payment_fraud'] = \
-                self.check_payment_fraud(url)
+                self.check_payment_fraud(final_url)
 
             # 12. UPI Scheme Verification (if applicable)
             if 'upi' in url.lower():
                 result['checks']['upi_verification'] = \
                     self.verify_upi_scheme(url)
+
+            # Store final destination info when redirect occurred
+            if url_changed:
+                result['final_url'] = final_url
+                result['final_domain'] = final_domain
+                result['was_redirected'] = True
 
             # Collect all warnings into one list
             result['warnings'] = self.collect_warnings(result['checks'])
@@ -173,66 +262,79 @@ class SecurityAnalyzer:
         return {'safe': True, 'error': 'Check failed'}
 
     # ────────────────────────────────────────────────────────────
-    # CHECK 2 — VirusTotal
+    # CHECK 2 — VirusTotal (v3 API)
     # ────────────────────────────────────────────────────────────
     def check_virustotal(self, url: str) -> Dict[str, Any]:
-        """Check URL reputation with VirusTotal"""
+        """Check URL reputation with VirusTotal v3 API"""
         try:
             if not self.virustotal_api_key:
                 return {'available': False}
 
-            params = {'apikey': self.virustotal_api_key, 'resource': url}
+            import base64
+
+            # v3 uses a URL-safe base64 identifier with no padding
+            url_id = base64.urlsafe_b64encode(
+                url.encode()
+            ).decode().rstrip('=')
+
+            headers = {
+                'x-apikey': self.virustotal_api_key,
+                'Accept': 'application/json'
+            }
+
             response = requests.get(
-                'https://www.virustotal.com/vtapi/v2/url/report',
-                params=params,
-                headers=self.headers,
+                f'https://www.virustotal.com/api/v3/urls/{url_id}',
+                headers=headers,
                 timeout=15
             )
 
+            # URL not yet in VirusTotal — submit it for scanning
+            if response.status_code == 404:
+                try:
+                    requests.post(
+                        'https://www.virustotal.com/api/v3/urls',
+                        headers=headers,
+                        data={'url': url},
+                        timeout=15
+                    )
+                except Exception:
+                    pass
+                return {
+                    'available': False,
+                    'message': 'URL submitted to VirusTotal — not yet scanned'
+                }
+
             if response.status_code == 200:
                 data = response.json()
+                stats = (
+                    data.get('data', {})
+                        .get('attributes', {})
+                        .get('last_analysis_stats', {})
+                )
+                positives = stats.get('malicious', 0)
+                suspicious = stats.get('suspicious', 0)
+                total = sum(stats.values()) if stats else 0
+                score = (positives / total * 100) if total > 0 else 0
 
-                # URL not in database — submit for future scans
-                if data.get('response_code') == 0:
-                    try:
-                        submit_params = {
-                            'apikey': self.virustotal_api_key,
-                            'url': url
-                        }
-                        requests.post(
-                            'https://www.virustotal.com/vtapi/v2/url/scan',
-                            params=submit_params,
-                            headers=self.headers,
-                            timeout=15
-                        )
-                    except Exception:
-                        pass
-                    return {
-                        'available': False,
-                        'message': 'URL submitted for scanning, '
-                                   'not yet in database'
-                    }
+                permalink = (
+                    data.get('data', {})
+                        .get('links', {})
+                        .get('self', '')
+                )
 
-                # URL queued for scanning
-                if data.get('response_code') == -2:
-                    return {
-                        'available': False,
-                        'message': 'URL is queued for scanning'
-                    }
-
-                # URL found in database
-                if data.get('response_code') == 1:
-                    positives = data.get('positives', 0)
-                    total = data.get('total', 1)
-                    score = positives / total * 100 if total > 0 else 0
-                    return {
-                        'available': True,
-                        'positives': positives,
-                        'total': total,
-                        'score': score,
-                        'scan_date': data.get('scan_date'),
-                        'permalink': data.get('permalink')
-                    }
+                return {
+                    'available': True,
+                    'positives': positives,
+                    'suspicious': suspicious,
+                    'total': total,
+                    'score': score,
+                    'scan_date': (
+                        data.get('data', {})
+                            .get('attributes', {})
+                            .get('last_analysis_date')
+                    ),
+                    'permalink': permalink
+                }
 
             elif response.status_code == 204:
                 return {
@@ -240,7 +342,7 @@ class SecurityAnalyzer:
                     'message': 'VirusTotal rate limit exceeded'
                 }
 
-            elif response.status_code == 403:
+            elif response.status_code == 401:
                 return {
                     'available': False,
                     'message': 'Invalid VirusTotal API key'
@@ -291,18 +393,27 @@ class SecurityAnalyzer:
                     now = datetime.now()
 
                 age_days = (now - creation_date).days
+
+                # Normalise expiration_date — pick first entry if it's a list
+                expiry = w.expiration_date
+                if isinstance(expiry, list):
+                    expiry = expiry[0]
+                expiry_str = expiry.isoformat() if hasattr(expiry, 'isoformat') else str(expiry)
+
                 return {
                     'age_days': age_days,
                     'creation_date': creation_date.isoformat(),
                     'is_new': age_days <= 90,
                     'registrar': w.registrar,
-                    'expiration_date': str(w.expiration_date)
+                    'expiration_date': expiry_str
                 }
 
         except Exception as e:
+            # Truncate long WHOIS boilerplate to a clean one-liner
+            error_msg = str(e).splitlines()[0]
             return {
                 'age_days': None,
-                'error': f'WHOIS lookup failed: {str(e)}'
+                'error': f'WHOIS lookup failed: {error_msg}'
             }
 
         return {'age_days': None, 'error': 'No creation date found'}
@@ -419,17 +530,7 @@ class SecurityAnalyzer:
         """
         warnings = []
 
-        brands = {
-            'paytm':    ['paytm.com', 'paytm.in'],
-            'paypal':   ['paypal.com', 'paypal.me'],
-            'google':   ['google.com', 'google.co.in'],
-            'amazon':   ['amazon.com', 'amazon.in'],
-            'phonepe':  ['phonepe.com'],
-            'razorpay': ['razorpay.com'],
-            'bank':     ['hdfcbank.com', 'icicibank.com', 'sbi.co.in'],
-            'facebook': ['facebook.com', 'fb.com'],
-            'whatsapp': ['whatsapp.com']
-        }
+        brands = _load_brands()
 
         domain_lower = domain.lower()
 
@@ -588,34 +689,188 @@ class SecurityAnalyzer:
     # CHECK 8 — Homograph Attack
     # ────────────────────────────────────────────────────────────
     def check_homograph_attack(self, domain: str) -> Dict[str, Any]:
-        """Check for homograph attacks using Unicode characters"""
+        """
+        Detect homograph attacks via four independent passes:
+
+        PASS 1 — IDNA / Punycode encoding
+            Any domain containing non-ASCII chars encodes to a different
+            Punycode form. Catches all IDN-based attacks.
+
+        PASS 2 — Mixed-script detection
+            Flags domains mixing characters from multiple Unicode scripts
+            (e.g. Latin + Cyrillic). The classic IDN homograph attack.
+
+        PASS 3 — Confusables normalization (key improvement)
+            Replaces every character with its ASCII look-alike using the
+            confusables map, then checks whether the normalized domain
+            matches a known brand. Catches SINGLE-SCRIPT attacks that
+            Pass 2 misses entirely (e.g. full-Cyrillic 'раypal.com').
+
+        PASS 4 — Suspicious Unicode block detection
+            Flags any domain containing characters from scripts that have
+            no legitimate reason to appear in a brand domain name
+            (Cyrillic, Greek, Arabic, Hebrew, Devanagari, CJK, etc.).
+            Catches obfuscated domains even without a brand match.
+        """
+        import unicodedata
+
+        confusables = _load_confusables()
+        brands = _load_brands()
+
+        warnings = []
+        details = {
+            'original': domain,
+            'checks_performed': []
+        }
+
+        # ── PASS 1: IDNA / Punycode encoding ─────────────────────
+        punycode = None
         try:
-            ascii_domain = idna.encode(domain).decode('ascii')
+            punycode = idna.encode(domain).decode('ascii')
+            details['checks_performed'].append('idna_encoding')
 
-            if domain != ascii_domain:
-                import unicodedata
-                scripts = set()
-                for char in domain:
-                    try:
-                        scripts.add(
-                            unicodedata.name(char).split()[0]
-                        )
-                    except Exception:
-                        pass
-
-                if len(scripts) > 1:
-                    return {
-                        'is_homograph': True,
-                        'original': domain,
-                        'ascii': ascii_domain,
-                        'scripts': list(scripts),
-                        'warning': 'Possible homograph attack detected'
-                    }
-
+            if domain.lower() != punycode.lower():
+                details['punycode'] = punycode
+                warnings.append(
+                    f'Domain encodes to Punycode: {punycode}'
+                )
         except Exception:
+            # idna.encode raises on truly malformed domains — still
+            # continue with the remaining passes
             pass
 
-        return {'is_homograph': False}
+        # ── PASS 2: Mixed-script detection ───────────────────────
+        details['checks_performed'].append('mixed_script')
+        scripts: Dict[str, List[str]] = {}
+        for char in domain:
+            if char in '.-':        # separators are script-neutral
+                continue
+            try:
+                script = unicodedata.name(char).split()[0]
+                scripts.setdefault(script, []).append(char)
+            except ValueError:
+                pass
+
+        non_latin_scripts = {
+            s: chars for s, chars in scripts.items()
+            if s not in ('LATIN', 'DIGIT', 'HYPHEN-MINUS', 'FULL')
+        }
+
+        if len(scripts) > 1 and non_latin_scripts:
+            details['scripts'] = {s: list(set(c)) for s, c in scripts.items()}
+            warnings.append(
+                f'Mixed Unicode scripts detected: '
+                f'{", ".join(scripts.keys())}'
+            )
+
+        # ── PASS 3: Confusables normalization ────────────────────
+        details['checks_performed'].append('confusables')
+        suspicious_chars = []
+        normalized_chars = []
+
+        for char in domain:
+            if char in confusables:
+                suspicious_chars.append({
+                    'char': char,
+                    'looks_like': confusables[char],
+                    'codepoint': f'U+{ord(char):04X}',
+                    'unicode_name': unicodedata.name(char, 'UNKNOWN')
+                })
+                normalized_chars.append(confusables[char])
+            else:
+                normalized_chars.append(char)
+
+        if suspicious_chars:
+            normalized_domain = ''.join(normalized_chars)
+            details['suspicious_chars'] = suspicious_chars
+            details['normalized_domain'] = normalized_domain
+
+            # Extract base of normalized domain for brand matching
+            try:
+                extracted = tldextract.extract(normalized_domain)
+                normalized_base = extracted.domain.lower()
+            except Exception:
+                normalized_base = normalized_domain.lower()
+
+            matched_brand = None
+            for brand, legit_domains in brands.items():
+                # Check if normalized domain IS a brand
+                if normalized_base == brand:
+                    matched_brand = brand
+                    break
+                # Check if normalized domain ends with a legitimate brand domain
+                if any(normalized_domain.lower().endswith(d) for d in legit_domains):
+                    matched_brand = brand
+                    break
+
+            if matched_brand:
+                warnings.append(
+                    f'CONFIRMED BRAND SPOOF: Fake {matched_brand} domain '
+                    f'using {len(suspicious_chars)} confusable character(s)'
+                )
+            else:
+                warnings.append(
+                    f'Contains {len(suspicious_chars)} Unicode look-alike '
+                    f'character(s): '
+                    f'{", ".join(c["char"] + "→" + c["looks_like"] for c in suspicious_chars[:5])}'
+                )
+
+        # ── PASS 4: Suspicious Unicode block detection ────────────
+        details['checks_performed'].append('unicode_block')
+
+        # Scripts that have no business being in a domain targeting
+        # Latin-script brand names
+        suspicious_blocks = {
+            'CYRILLIC':   'Cyrillic',
+            'GREEK':      'Greek',
+            'ARABIC':     'Arabic',
+            'HEBREW':     'Hebrew',
+            'DEVANAGARI': 'Devanagari',
+            'THAI':       'Thai',
+            'GEORGIAN':   'Georgian',
+            'ARMENIAN':   'Armenian',
+            'CJK':        'CJK (Chinese/Japanese/Korean)',
+            'HANGUL':     'Hangul (Korean)',
+            'HIRAGANA':   'Hiragana (Japanese)',
+            'KATAKANA':   'Katakana (Japanese)',
+        }
+
+        found_blocks = []
+        for char in domain:
+            if char in '.-':
+                continue
+            try:
+                char_name = unicodedata.name(char)
+                for block_key, block_label in suspicious_blocks.items():
+                    if char_name.startswith(block_key):
+                        found_blocks.append(block_label)
+                        break
+            except ValueError:
+                pass
+
+        found_blocks = list(dict.fromkeys(found_blocks))  # deduplicate, preserve order
+        if found_blocks:
+            details['suspicious_blocks'] = found_blocks
+            if not any('CONFIRMED BRAND SPOOF' in w for w in warnings):
+                warnings.append(
+                    f'Domain contains characters from suspicious Unicode '
+                    f'block(s): {", ".join(found_blocks)}'
+                )
+
+        # ── Final result ──────────────────────────────────────────
+        is_homograph = len(warnings) > 0
+        return {
+            'is_homograph': is_homograph,
+            'warnings': warnings,
+            'warning_count': len(warnings),
+            'details': details,
+            'severity': (
+                'HIGH'   if any('CONFIRMED BRAND SPOOF' in w for w in warnings) else
+                'MEDIUM' if len(warnings) >= 2 else
+                'LOW'    if is_homograph else
+                'NONE'
+            )
+        }
 
     # ────────────────────────────────────────────────────────────
     # CHECK 9 — Phishing Keywords
@@ -638,16 +893,8 @@ class SecurityAnalyzer:
     # ────────────────────────────────────────────────────────────
     def check_domain_reputation(self, domain: str) -> Dict[str, Any]:
         """Check domain against blacklists/whitelists"""
-        blacklist = [
-            'malicious-site.com',
-            'phishing-attempt.net'
-        ]
-
-        whitelist = [
-            'google.com',
-            'github.com',
-            'microsoft.com'
-        ]
+        blacklist = _load_wordlist('domain_blacklist.txt')
+        whitelist = _load_wordlist('domain_whitelist.txt')
 
         domain_lower = domain.lower()
         blacklist_lower = [b.lower() for b in blacklist]
@@ -668,27 +915,7 @@ class SecurityAnalyzer:
         warnings = []
         url_lower = url.lower()
 
-        payment_gateways = {
-            'paypal':    ['paypal.com', 'paypal.me'],
-            'stripe':    ['stripe.com'],
-            'razorpay':  ['razorpay.com'],
-            'phonepe':   ['phonepe.com'],
-            'paytm':     ['paytm.com', 'secure.paytm.in'],
-            'googlepay': ['gpay.app', 'googlepay.com'],
-            'amazonpay': ['amazonpay.com']
-        }
-
-        payment_typos = {
-            'paypal':    ['paypai', 'paypa1', 'paypai-com',
-                          'paypal-secure', 'paypal-login',
-                          'paypal-verify', 'paypal-update'],
-            'paytm':     ['paytmm', 'paiytm', 'paytmm-com',
-                          'paytm-login', 'paytm-verify',
-                          'paytm-update', 'paytm-secure'],
-            'phonepe':   ['phonepee', 'fonepe', 'phonepe-login'],
-            'googlepay': ['googlepai', 'gogglepay', 'googlepay-login'],
-            'amazonpay': ['amazonpai', 'amazon-pay-login']
-        }
+        payment_gateways, payment_typos = _load_payment_gateways()
 
         is_payment_related = False
         detected_gateway = None
@@ -766,15 +993,11 @@ class SecurityAnalyzer:
                     "⚠️ SUSPICIOUS: Uses IP address instead of domain"
                 )
 
-        # Brand used in subdomain check
-        brand_domains = [
-            'paytm', 'paypal', 'google',
-            'amazon', 'phonepe', 'razorpay'
-        ]
+        # Brand used in subdomain check — derived from loaded payment gateways
         parsed = urllib.parse.urlparse(url)
         domain = parsed.netloc.lower()
 
-        for brand in brand_domains:
+        for brand in payment_gateways.keys():
             if brand in domain and not any(
                 legit in domain
                 for legit in payment_gateways.get(brand, [])
@@ -869,7 +1092,9 @@ class SecurityAnalyzer:
 
         if 'homograph' in checks and \
                 checks['homograph'].get('is_homograph'):
-            warnings.append("Possible homograph attack detected")
+            warnings.extend(checks['homograph'].get('warnings', [
+                'Possible homograph attack detected'
+            ]))
 
         if 'phishing_keywords' in checks and \
                 checks['phishing_keywords'].get('is_suspicious'):
@@ -884,5 +1109,20 @@ class SecurityAnalyzer:
             warnings.extend(
                 checks['payment_fraud'].get('warnings', [])
             )
+
+        # Final destination checks (when original URL redirected elsewhere)
+        if 'safe_browsing_final' in checks and \
+                not checks['safe_browsing_final'].get('safe', True):
+            warnings.append(
+                'Final redirect destination flagged by Google Safe Browsing'
+            )
+
+        if 'virustotal_final' in checks and \
+                checks['virustotal_final'].get('available'):
+            if checks['virustotal_final'].get('score', 0) > 5:
+                warnings.append(
+                    f"Final redirect destination flagged by VirusTotal: "
+                    f"{checks['virustotal_final'].get('positives', 0)} engines"
+                )
 
         return warnings

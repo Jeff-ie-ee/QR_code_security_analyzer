@@ -1,0 +1,36 @@
+# Known malicious / phishing domains. One domain per line.
+# Lines starting with # are ignored. Exact match against the scanned domain.
+# Keep entries lowercase. Update regularly from threat-intel feeds.
+
+# ── Stub / test entries ───────────────────────────────────────────────────────
+malicious-site.com
+phishing-attempt.net
+evilsite.ru
+scam-paypal.com
+fake-amazon.net
+login-paytm.xyz
+secure-phonepe.info
+paytm-verify.club
+amazon-rewards-claim.com
+netflix-billing-update.com
+microsoft-alert-security.com
+apple-id-locked.com
+google-account-suspended.xyz
+bankofamerica-verify.com
+hdfc-netbanking-alert.com
+icici-update-kyc.com
+sbi-online-verify.in
+axis-bank-login.xyz
+uidai-update.xyz
+incometax-refund-claim.in
+irctc-ticket-offer.com
+coinbase-airdrop.net
+binance-giveaway.com
+metamask-support.xyz
+trustwallet-verify.com
+crypto-doubler.io
+btc-giveaway.club
+eth-airdrop.net
+upi-fraud-claim.xyz
+phonepe-cashback.xyz
+gpay-reward.net

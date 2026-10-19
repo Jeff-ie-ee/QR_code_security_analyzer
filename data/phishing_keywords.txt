@@ -1,0 +1,106 @@
+# Phishing-related keywords checked against URLs.
+# Lines starting with # are ignored. One keyword per line.
+# A URL is flagged as suspicious when 3+ keywords are present.
+
+# ── Account / credential theft ───────────────────────────────────────────────
+login
+signin
+sign-in
+logon
+log-in
+logout
+password
+passwd
+credential
+credentials
+username
+account
+accounts
+profile
+myaccount
+my-account
+billing
+
+# ── Action / urgency words ────────────────────────────────────────────────────
+verify
+verification
+validate
+validation
+confirm
+confirmation
+update
+upgrade
+restore
+recover
+recovery
+reactivate
+activate
+unlock
+reset
+
+# ── Security / fear triggers ──────────────────────────────────────────────────
+secure
+security
+protected
+alert
+warning
+urgent
+critical
+important
+notice
+notification
+suspended
+suspended-account
+locked
+restricted
+blocked
+limited
+unusual
+suspicious
+unauthorized
+compromised
+
+# ── Banking / financial triggers ─────────────────────────────────────────────
+banking
+netbanking
+online-banking
+transaction
+transfer
+payment
+refund
+invoice
+statement
+balance
+withdraw
+deposit
+
+# ── Brand bait words ──────────────────────────────────────────────────────────
+paypal
+paytm
+phonepe
+googlepay
+amazon
+microsoft
+apple
+netflix
+support
+helpdesk
+customercare
+customer-care
+customer-service
+techsupport
+tech-support
+
+# ── Phishing page scaffolding ─────────────────────────────────────────────────
+webscr
+cmd=_login
+ebayisapi
+wp-login
+admin-login
+admin-panel
+user-login
+member-login
+client-login
+portal-login
+secure-login
+safe-login

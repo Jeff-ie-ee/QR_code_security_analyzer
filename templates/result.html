@@ -71,6 +71,13 @@
                                         <div class="alert alert-light">
                                             <code>{{ result.qr_content[:100] }}{% if result.qr_content|length > 100 %}...{% endif %}</code>
                                         </div>
+                                        {% if result.security_report.was_redirected %}
+                                        <div class="alert alert-warning py-2">
+                                            <i class="fas fa-directions"></i>
+                                            <strong>Redirected to:</strong><br>
+                                            <code class="text-break">{{ result.security_report.final_url }}</code>
+                                        </div>
+                                        {% endif %}
                                         <p><strong>Scan ID:</strong> {{ result.scan_id }}</p>
                                         <p><strong>Timestamp:</strong> {{ result.timestamp }}</p>
                                     </div>
@@ -136,6 +143,7 @@
                             <!-- Google Safe Browsing Card -->
                             {% if result.security_report.checks and 'safe_browsing' in result.security_report.checks %}
                             {% set sb = result.security_report.checks.safe_browsing %}
+                            {% set sb_final = result.security_report.checks['safe_browsing_final'] if 'safe_browsing_final' in result.security_report.checks else None %}
                             <div class="col-md-6 col-lg-4 mb-4">
                                 <div class="card check-card h-100">
                                     <div class="card-body">
@@ -148,6 +156,7 @@
                                             {% endif %}
                                         </div>
                                         <p class="card-text small">
+                                            <span class="text-muted">Original URL:</span><br>
                                             {% if sb.safe %}
                                             <i class="fas fa-check-circle check-pass"></i> Safe — No threats detected
                                             {% else %}
@@ -157,6 +166,20 @@
                                             {% endif %}
                                             {% endif %}
                                         </p>
+                                        {% if sb_final %}
+                                        <hr class="my-2">
+                                        <p class="card-text small mb-0">
+                                            <span class="text-muted">Final destination:</span><br>
+                                            {% if sb_final.safe %}
+                                            <i class="fas fa-check-circle check-pass"></i> Safe — No threats detected
+                                            {% else %}
+                                            <i class="fas fa-times-circle check-fail"></i> <strong class="text-danger">Threat detected at destination</strong>
+                                            {% if sb_final.threats %}
+                                            <br><small class="text-danger">{{ sb_final.threats[0].threatType }}</small>
+                                            {% endif %}
+                                            {% endif %}
+                                        </p>
+                                        {% endif %}
                                     </div>
                                 </div>
                             </div>
@@ -165,6 +188,7 @@
                             <!-- VirusTotal Card -->
                             {% if result.security_report.checks and 'virustotal' in result.security_report.checks %}
                             {% set vt = result.security_report.checks.virustotal %}
+                            {% set vt_final = result.security_report.checks['virustotal_final'] if 'virustotal_final' in result.security_report.checks else None %}
                             <div class="col-md-6 col-lg-4 mb-4">
                                 <div class="card check-card h-100">
                                     <div class="card-body">
@@ -177,6 +201,7 @@
                                             {% endif %}
                                         </div>
                                         <p class="card-text small">
+                                            <span class="text-muted">Original URL:</span><br>
                                             {% if vt.available %}
                                                 {% if vt.positives > 0 %}
                                                 <i class="fas fa-times-circle check-fail"></i>
@@ -191,6 +216,28 @@
                                             <span class="text-muted">{{ vt.message if vt.message else 'Not available' }}</span>
                                             {% endif %}
                                         </p>
+                                        {% if vt_final %}
+                                        <hr class="my-2">
+                                        <p class="card-text small mb-0">
+                                            <span class="text-muted">Final destination:</span><br>
+                                            {% if vt_final.available %}
+                                                {% if vt_final.positives > 0 %}
+                                                <i class="fas fa-times-circle check-fail"></i>
+                                                <strong class="text-danger">{{ vt_final.positives }}/{{ vt_final.total }} engines flagged</strong>
+                                                {% if vt_final.suspicious > 0 %}
+                                                <br><small class="text-warning">+ {{ vt_final.suspicious }} suspicious</small>
+                                                {% endif %}
+                                                <br><small class="text-muted">Scanned: {{ vt_final.scan_date }}</small>
+                                                {% else %}
+                                                <i class="fas fa-check-circle check-pass"></i> Clean
+                                                <br><small class="text-muted">0/{{ vt_final.total }} engines flagged</small>
+                                                {% endif %}
+                                            {% else %}
+                                            <i class="fas fa-info-circle text-muted"></i>
+                                            <span class="text-muted">{{ vt_final.message if vt_final.message else 'Not available' }}</span>
+                                            {% endif %}
+                                        </p>
+                                        {% endif %}
                                     </div>
                                 </div>
                             </div>

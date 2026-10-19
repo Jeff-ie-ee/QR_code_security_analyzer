@@ -1,0 +1,76 @@
+{
+  "_comment": "Payment gateway detection data. 'legitimate_domains' are trusted; 'typo_patterns' are known fakes.",
+
+  "paypal": {
+    "legitimate_domains": ["paypal.com", "paypal.me", "paypal.co.uk", "paypal.co.in"],
+    "typo_patterns": [
+      "paypai", "paypa1", "paypai-com", "paypol", "paypa1-com",
+      "paypal-secure", "paypal-login", "paypal-verify", "paypal-update",
+      "paypal-account", "login-paypal", "secure-paypal", "paypall",
+      "paipal", "paypaI", "paypel"
+    ]
+  },
+  "paytm": {
+    "legitimate_domains": ["paytm.com", "paytm.in", "secure.paytm.in", "business.paytm.com"],
+    "typo_patterns": [
+      "paytmm", "paiytm", "paytmm-com", "pa1tm", "p4ytm",
+      "paytm-login", "paytm-verify", "paytm-update", "paytm-secure",
+      "paytm-account", "login-paytm", "paytm-wallet", "payytm", "paatm"
+    ]
+  },
+  "phonepe": {
+    "legitimate_domains": ["phonepe.com", "www.phonepe.com"],
+    "typo_patterns": [
+      "phonepee", "fonepe", "phonepay", "phone-pe",
+      "phonepe-login", "phonepe-verify", "phonepe-secure",
+      "ph0nepe", "phonep3", "phnepe", "phomnepe"
+    ]
+  },
+  "googlepay": {
+    "legitimate_domains": ["pay.google.com", "googlepay.com", "gpay.app"],
+    "typo_patterns": [
+      "googlepai", "gogglepay", "g00gpay", "googlepay-login",
+      "googlepay-verify", "googl3pay", "goglepay", "googlpay"
+    ]
+  },
+  "amazonpay": {
+    "legitimate_domains": ["amazon.com", "amazonpay.com", "pay.amazon.in"],
+    "typo_patterns": [
+      "amazonpai", "amazon-pay-login", "amaz0npay",
+      "amazonpay-verify", "amazonpay-secure", "amasonpay"
+    ]
+  },
+  "razorpay": {
+    "legitimate_domains": ["razorpay.com", "dashboard.razorpay.com"],
+    "typo_patterns": [
+      "razorpai", "raz0rpay", "razorpay-login",
+      "razorpay-secure", "razzorpay", "razorpayy"
+    ]
+  },
+  "stripe": {
+    "legitimate_domains": ["stripe.com", "dashboard.stripe.com"],
+    "typo_patterns": [
+      "str1pe", "stripe-login", "stripe-secure",
+      "stripecom", "stripee", "strlpe"
+    ]
+  },
+  "venmo": {
+    "legitimate_domains": ["venmo.com", "account.venmo.com"],
+    "typo_patterns": [
+      "venm0", "venmo-login", "venmo-pay", "venmoo", "venm0o"
+    ]
+  },
+  "cashapp": {
+    "legitimate_domains": ["cash.app", "cashapp.com"],
+    "typo_patterns": [
+      "cash-app", "cashap", "c4shapp", "cashapp-login",
+      "cashapp-verify", "cashappp", "cashaap"
+    ]
+  },
+  "mobikwik": {
+    "legitimate_domains": ["mobikwik.com", "www.mobikwik.com"],
+    "typo_patterns": [
+      "mobikwick", "mob1kwik", "mobikwikk", "mobikwik-login"
+    ]
+  }
+}

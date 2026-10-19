@@ -1,0 +1,97 @@
+# Trusted / known-good domains. One domain per line.
+# Lines starting with # are ignored. Exact match against the scanned domain.
+# Keep entries lowercase.
+
+# ── Search / productivity ─────────────────────────────────────────────────────
+google.com
+gmail.com
+youtube.com
+accounts.google.com
+play.google.com
+microsoft.com
+outlook.com
+office.com
+live.com
+onedrive.com
+github.com
+gitlab.com
+stackoverflow.com
+wikipedia.org
+
+# ── Payment (legitimate) ──────────────────────────────────────────────────────
+paypal.com
+paypal.me
+paytm.com
+paytm.in
+phonepe.com
+razorpay.com
+stripe.com
+cash.app
+venmo.com
+gpay.app
+googlepay.com
+
+# ── E-commerce ────────────────────────────────────────────────────────────────
+amazon.com
+amazon.in
+amazon.co.uk
+flipkart.com
+ebay.com
+walmart.com
+shopify.com
+
+# ── Indian banks ──────────────────────────────────────────────────────────────
+hdfcbank.com
+icicibank.com
+sbi.co.in
+onlinesbi.com
+axisbank.com
+kotak.com
+kotakbank.com
+pnbindia.in
+bankofbaroda.in
+bankofindia.co.in
+canarabank.com
+
+# ── Global banks ─────────────────────────────────────────────────────────────
+chase.com
+bankofamerica.com
+wellsfargo.com
+citibank.com
+hsbc.com
+barclays.com
+
+# ── Social / communication ────────────────────────────────────────────────────
+facebook.com
+instagram.com
+whatsapp.com
+twitter.com
+x.com
+linkedin.com
+wa.me
+
+# ── Cloud / developer ─────────────────────────────────────────────────────────
+aws.amazon.com
+cloud.google.com
+azure.com
+cloudflare.com
+netlify.com
+vercel.com
+heroku.com
+digitalocean.com
+
+# ── Crypto exchanges (legitimate) ────────────────────────────────────────────
+coinbase.com
+binance.com
+kraken.com
+wazirx.com
+coindcx.com
+
+# ── Government India ──────────────────────────────────────────────────────────
+uidai.gov.in
+incometax.gov.in
+irctc.co.in
+npci.org.in
+epfindia.gov.in
+digilocker.gov.in
+india.gov.in

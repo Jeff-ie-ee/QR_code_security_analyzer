@@ -1,0 +1,108 @@
+{
+  "_comment": "Maps brand keyword to list of legitimate domains. Used for typosquatting / domain spoofing detection.",
+
+  "payment_services": {
+    "paypal":      ["paypal.com", "paypal.me", "paypal.co.uk", "paypal.co.in", "paypal.ca", "paypal.com.au"],
+    "paytm":       ["paytm.com", "paytm.in", "secure.paytm.in", "business.paytm.com"],
+    "phonepe":     ["phonepe.com", "www.phonepe.com"],
+    "googlepay":   ["pay.google.com", "googlepay.com", "gpay.app"],
+    "amazonpay":   ["amazon.com", "amazonpay.com", "pay.amazon.in", "pay.amazon.com"],
+    "razorpay":    ["razorpay.com", "dashboard.razorpay.com", "api.razorpay.com"],
+    "stripe":      ["stripe.com", "dashboard.stripe.com", "js.stripe.com"],
+    "venmo":       ["venmo.com", "account.venmo.com"],
+    "cashapp":     ["cash.app", "cashapp.com"],
+    "zelle":       ["zellepay.com", "enroll.zellepay.com"],
+    "mobikwik":    ["mobikwik.com", "www.mobikwik.com"],
+    "freecharge":  ["freecharge.in", "www.freecharge.in"],
+    "bhim":        ["bhimupi.com", "npci.org.in"],
+    "airtel":      ["airtel.in", "payments.airtel.in", "airtelbank.com"],
+    "jio":         ["jio.com", "jiomoney.com", "www.jio.com"]
+  },
+
+  "indian_banks": {
+    "hdfc":        ["hdfcbank.com", "netbanking.hdfcbank.com", "hdfclife.com"],
+    "icici":       ["icicibank.com", "icici.com", "iciciprulife.com"],
+    "sbi":         ["sbi.co.in", "onlinesbi.com", "onlinesbi.sbi", "retail.onlinesbi.com"],
+    "axis":        ["axisbank.com", "netbanking.axisbank.com"],
+    "kotak":       ["kotak.com", "kotakbank.com", "netbanking.kotak.com"],
+    "pnb":         ["pnbindia.in", "netpnb.com"],
+    "bob":         ["bankofbaroda.in", "bobibanking.com"],
+    "boi":         ["bankofindia.co.in"],
+    "canara":      ["canarabank.com", "canarabank.in"],
+    "union":       ["unionbankofindia.co.in", "unionbank.co.in"],
+    "idbi":        ["idbibank.com", "idbi.com"],
+    "federal":     ["federalbank.co.in"],
+    "yesbank":     ["yesbank.in", "www.yesbank.in"],
+    "indusind":    ["indusind.com", "indusindbank.com"]
+  },
+
+  "global_banks": {
+    "chase":       ["chase.com", "jpmorgan.com", "jpmorganchase.com"],
+    "bankofamerica": ["bankofamerica.com", "bac.com", "merrilledge.com"],
+    "wellsfargo":  ["wellsfargo.com", "wellsfargobank.com"],
+    "citibank":    ["citibank.com", "citi.com", "online.citibank.com"],
+    "hsbc":        ["hsbc.com", "hsbc.co.in", "hsbc.co.uk", "hsbcnet.com"],
+    "barclays":    ["barclays.com", "barclaycard.co.uk", "barclays.co.uk"],
+    "deutsche":    ["db.com", "deutsche-bank.com", "deutschebank.com"],
+    "ubs":         ["ubs.com", "www.ubs.com"],
+    "santander":   ["santander.com", "santander.co.uk"],
+    "scotiabank":  ["scotiabank.com", "scotiaonline.scotiabank.com"]
+  },
+
+  "tech_giants": {
+    "google":      ["google.com", "google.co.in", "google.co.uk", "google.com.au", "google.ca", "google.de", "google.fr", "gmail.com", "youtube.com", "accounts.google.com", "play.google.com", "cloud.google.com"],
+    "microsoft":   ["microsoft.com", "live.com", "outlook.com", "office.com", "microsoftonline.com", "azure.com", "onedrive.com", "sharepoint.com", "bing.com"],
+    "apple":       ["apple.com", "icloud.com", "appleid.apple.com", "itunes.apple.com"],
+    "amazon":      ["amazon.com", "amazon.in", "amazon.co.uk", "amazon.de", "amazon.fr", "amazon.co.jp", "amazon.ca", "aws.amazon.com"],
+    "facebook":    ["facebook.com", "fb.com", "meta.com", "m.facebook.com"],
+    "instagram":   ["instagram.com", "www.instagram.com"],
+    "whatsapp":    ["whatsapp.com", "wa.me", "web.whatsapp.com"],
+    "twitter":     ["twitter.com", "x.com", "t.co", "mobile.twitter.com"],
+    "linkedin":    ["linkedin.com", "www.linkedin.com"],
+    "netflix":     ["netflix.com", "www.netflix.com"],
+    "dropbox":     ["dropbox.com", "www.dropbox.com"],
+    "adobe":       ["adobe.com", "adobeconnect.com", "creativecloud.adobe.com"],
+    "zoom":        ["zoom.us", "zoom.com", "us02web.zoom.us"],
+    "slack":       ["slack.com", "app.slack.com"],
+    "spotify":     ["spotify.com", "open.spotify.com"],
+    "github":      ["github.com", "raw.githubusercontent.com"]
+  },
+
+  "ecommerce": {
+    "flipkart":    ["flipkart.com", "www.flipkart.com"],
+    "snapdeal":    ["snapdeal.com", "www.snapdeal.com"],
+    "myntra":      ["myntra.com", "www.myntra.com"],
+    "meesho":      ["meesho.com", "www.meesho.com"],
+    "nykaa":       ["nykaa.com", "www.nykaa.com"],
+    "ebay":        ["ebay.com", "ebay.in", "ebay.co.uk"],
+    "walmart":     ["walmart.com", "www.walmart.com"],
+    "aliexpress":  ["aliexpress.com", "www.aliexpress.com"],
+    "shopify":     ["shopify.com", "myshopify.com"]
+  },
+
+  "crypto_exchanges": {
+    "coinbase":    ["coinbase.com", "pro.coinbase.com", "coinbase.one"],
+    "binance":     ["binance.com", "binance.us", "accounts.binance.com"],
+    "kraken":      ["kraken.com", "www.kraken.com"],
+    "wazirx":      ["wazirx.com", "www.wazirx.com"],
+    "coindcx":     ["coindcx.com", "www.coindcx.com"],
+    "unocoin":     ["unocoin.com", "www.unocoin.com"]
+  },
+
+  "email_providers": {
+    "gmail":       ["gmail.com", "google.com", "accounts.google.com"],
+    "yahoo":       ["yahoo.com", "yahoo.co.in", "yahoo.co.uk", "mail.yahoo.com"],
+    "outlook":     ["outlook.com", "outlook.live.com", "hotmail.com", "live.com"],
+    "protonmail":  ["protonmail.com", "proton.me", "mail.proton.me"],
+    "zoho":        ["zoho.com", "zohomail.com", "mail.zoho.com"]
+  },
+
+  "government_india": {
+    "uidai":       ["uidai.gov.in", "aadhaar.gov.in", "resident.uidai.gov.in"],
+    "incometax":   ["incometax.gov.in", "efiling.incometax.gov.in", "www.incometax.gov.in"],
+    "irctc":       ["irctc.co.in", "www.irctc.co.in", "ixigo.com"],
+    "npci":        ["npci.org.in", "www.npci.org.in"],
+    "epfo":        ["epfindia.gov.in", "unifiedportal-mem.epfindia.gov.in"],
+    "digilocker":  ["digilocker.gov.in", "www.digilocker.gov.in"]
+  }
+}
